@@ -1,51 +1,47 @@
 import { useEffect, useRef } from 'react';
 
-const KIND_COLOR = {
-  sys: 'text-sky-400',
-  agent: 'text-emerald-300',
-  error: 'text-red-400',
+const KIND_STYLE = {
+  agent: { color: '#4d6a88' },
+  sys:   { color: '#243344' },
+  error: { color: '#ff4455' },
 };
 
-function fmtTime(t) {
-  return new Date(t).toTimeString().slice(0, 8);
-}
-
-/**
- * AgentLog - the right panel. Terminal-style scrolling log of agent events,
- * colored by kind, auto-scrolling to the newest line.
- */
 export default function AgentLog({ log }) {
-  const endRef = useRef(null);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [log]);
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-mono text-xs tracking-widest text-slate-400">
-          AGENT LOG
-        </span>
-        <span className="font-mono text-xs text-slate-600">
-          {log.length} events
+  if (!log || log.length === 0) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#243344', letterSpacing: '0.1em' }}>
+          NO EVENTS
         </span>
       </div>
+    );
+  }
 
-      <div className="log-scroll flex-1 overflow-y-auto rounded-xl border border-slate-800 bg-black/60 p-3 font-mono text-xs leading-relaxed">
-        {log.length === 0 && (
-          <div className="text-slate-700">[ waiting for agent events ]</div>
-        )}
-        {log.map((e, i) => (
-          <div key={i} className="flex gap-2">
-            <span className="text-slate-700 shrink-0">{fmtTime(e.t)}</span>
-            <span className={KIND_COLOR[e.kind] || 'text-slate-300'}>
-              {e.line}
+  const sessionStart = log[0]?.t || Date.now();
+
+  return (
+    <div className="log-scroll" style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {log.map((entry, i) => {
+        const elapsed = ((entry.t - sessionStart) / 1000).toFixed(1);
+        const style = KIND_STYLE[entry.kind] || KIND_STYLE.agent;
+        return (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#1e3248', letterSpacing: '0.05em', flexShrink: 0, paddingTop: 1, minWidth: 36 }}>
+              +{elapsed}s
+            </span>
+            <span style={{ fontFamily: "'DM Mono'", fontSize: 9, color: style.color, lineHeight: 1.6, wordBreak: 'break-all' }}>
+              {entry.line}
             </span>
           </div>
-        ))}
-        <div ref={endRef} />
-      </div>
+        );
+      })}
+      <div ref={bottomRef} />
     </div>
   );
 }

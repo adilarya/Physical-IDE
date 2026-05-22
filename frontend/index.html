@@ -3,10 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Physical IDE - Deep-Scan Mentor</title>
-    <!-- Tailwind via CDN: zero build config, saves setup time for the hackathon.
-         TODO: swap to a real Tailwind build before submission if perf matters. -->
+    <title>PREFLIGHT — Physical IDE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              chakra: ['Chakra Petch', 'sans-serif'],
+              mono: ['DM Mono', 'monospace'],
+            },
+            colors: {
+              'bg-deep':    '#060c16',
+              'bg-panel':   '#09111e',
+              'bg-surface': '#0d1928',
+              'border-dim': '#132030',
+              'border-mid': '#1e3248',
+              'border-hi':  '#2d4a6a',
+              'orange':     '#f97316',
+              'orange-dim': '#7c3a0a',
+              'orange-glow':'#ff8c38',
+              'tx-primary': '#c8ddf0',
+              'tx-muted':   '#4d6a88',
+              'tx-dim':     '#243344',
+              'green-ok':   '#10e8a0',
+              'red-err':    '#ff4455',
+              'amber-warn': '#f59e0b',
+            }
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
