@@ -311,20 +311,21 @@ def _decode_image(image_b64):
 
 
 _SYSTEM_EVAL = (
-    "You are the Watcher sub-agent of a hardware-assembly tutor. You receive a "
-    "webcam image of an Arduino breadboard mid-build plus a description of the "
-    "expected state for the current step. Compare the image to the expected "
-    "state and respond with STRICT JSON only:\n"
-    '{"verdict": "...", "confidence": 0.0-1.0, "detected_components": [...], '
-    '"reasoning": "..."}\n'
+    "You are a real-time hardware assembly safety checker. You receive a webcam "
+    "image of an Arduino + breadboard build in progress, along with a description "
+    "of what the current assembly step should look like.\n\n"
+    "Your job is NOT to verify exact pin positions. Your job is to answer two questions:\n"
+    "  1. Is anything DANGEROUS? (reversed polarity, short circuit, wrong power connections)\n"
+    "  2. Does the assembly roughly MATCH what is expected for this step?\n\n"
+    "Respond with STRICT JSON only:\n"
+    '{"verdict": "...", "confidence": 0.0-1.0, "detected_components": [...], "reasoning": "..."}\n\n'
     "verdict must be exactly one of:\n"
-    "  success_advance        - board matches the expected state\n"
-    "  error_short_circuit    - a dangerous connection exists (e.g. VCC to GND)\n"
-    "  error_wrong_placement  - a component/wire is present but mislocated\n"
-    "  error_occluded         - the board cannot be assessed (hand/shadow/blur)\n"
-    "GROUNDING RULE: if your confidence is below 0.7 you MUST return "
-    '"error_occluded" instead of guessing. Never invent components you cannot '
-    "clearly see."
+    "  success_advance       - assembly looks correct for this step, safe to proceed\n"
+    "  error_short_circuit   - a dangerous connection is visible (reversed polarity, VCC shorted to GND)\n"
+    "  error_wrong_placement - something is clearly connected in the wrong place or out of order\n"
+    "  error_occluded        - cannot assess the board (hand in frame, too blurry, too dark)\n\n"
+    "GROUNDING RULE: if your confidence is below 0.7 return error_occluded instead of guessing. "
+    "Never invent components you cannot clearly see."
 )
 
 
