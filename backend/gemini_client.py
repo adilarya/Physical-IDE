@@ -1,17 +1,24 @@
 """
-gemini_client.py - MOCK MODE ONLY fallback for the Physical IDE.
+gemini_client.py - wrapper around the google-genai SDK with a full mock fallback.
 
-NOTE: This file is only used when MOCK_MODE=true. In production (MOCK_MODE=false),
-all vision and audio is handled by live_agent.py via the Gemini Live API
-(gemini-3.1-flash-live-preview). Nothing in this file is called in the live path.
+TODO: verify SDK surface at 11:30, choose strategy by 12:00
+      Unverified: single-pass TEXT+IMAGE+AUDIO modalities, Imagen model id,
+      Gemini TTS audio container (likely raw PCM -> needs WAV wrapping).
 
-This file exists so the full UI flow can be tested without API keys or a camera.
-
-PUBLIC INTERFACE (used by agent.py in mock mode only):
+PUBLIC INTERFACE (stable - agent.py depends on this, do NOT change signatures):
 
     async evaluate_frame(image_b64, current_step, expected_state) -> dict
+        -> {"verdict", "confidence", "detected_components", "reasoning"}
+           verdict is one of:
+             success_advance | error_short_circuit
+             error_occluded  | error_wrong_placement
+
     async generate_next_step(step_index, context) -> dict
-    reset_mock_state()
+        -> {"audio_b64", "image_b64", "text", "agent_log"}
+
+MOCK_MODE=true  (default) : zero API calls, deterministic canned responses.
+MOCK_MODE=false           : real google-genai calls; strategy via GEMINI_STRATEGY.
+                            Real failures fall back to mock so the demo survives.
 """
 import os
 import json
@@ -19,14 +26,17 @@ import base64
 import struct
 import asyncio
 
-try:
+try:  # optional - lets local dev use a backend/.env file
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
+GEMINI_STRATEGY = os.getenv("GEMINI_STRATEGY", "parallel")   # single_pass | parallel
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 _VALID_VERDICTS = {
     "success_advance", "error_short_circuit",
@@ -47,13 +57,27 @@ _IMAGE_STYLE = (
 # ===========================================================================
 
 async def evaluate_frame(image_b64, current_step, expected_state):
-    """Mock-mode only. Live mode uses live_agent.py directly."""
-    return _mock_evaluate(current_step)
+    """WATCHER backend: is the physical board in the expected state?"""
+    if MOCK_MODE:
+        return _mock_evaluate(current_step)
+    try:
+        return await _real_evaluate_frame(image_b64, current_step, expected_state)
+    except Exception as e:  # noqa: BLE001 - demo must never hard-crash
+        print(f"[gemini_client] real evaluation failed ({e!r}) - falling back to mock")
+        return _mock_evaluate(current_step)
 
 
 async def generate_next_step(step_index, context):
-    """Mock-mode only. Live mode uses live_agent.py directly."""
-    return _mock_generate(step_index, context)
+    """PLANNER backend: produce the next interleaved (text+image+audio) turn."""
+    if MOCK_MODE:
+        return _mock_generate(step_index, context)
+    try:
+        if GEMINI_STRATEGY == "single_pass":
+            return await _real_generate_single_pass(step_index, context)
+        return await _real_generate_parallel(step_index, context)
+    except Exception as e:  # noqa: BLE001 - demo must never hard-crash
+        print(f"[gemini_client] real generation failed ({e!r}) - falling back to mock")
+        return _mock_generate(step_index, context)
 
 
 def reset_mock_state():
@@ -273,6 +297,191 @@ def _mock_image(kind, label, caption):
     return _svg_data_uri(svg)
 
 
-# Real API implementation removed — in live mode (MOCK_MODE=false), all
-# vision and audio is handled by live_agent.py via gemini-3.1-flash-live-preview.
-# Phase 1 (Tutorial) will add real Planner calls here when built.
+# ===========================================================================
+#  REAL google-genai IMPLEMENTATION
+#  Lazily imported so MOCK_MODE works even if the SDK is not installed.
+# ===========================================================================
+
+_genai_client = None
+
+
+def _client():
+    global _genai_client
+    if _genai_client is None:
+        from google import genai
+        if not GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY is not set but MOCK_MODE=false")
+        _genai_client = genai.Client(api_key=GEMINI_API_KEY)
+    return _genai_client
+
+
+def _decode_image(image_b64):
+    raw = image_b64.split(",", 1)[1] if image_b64.startswith("data:") else image_b64
+    return base64.b64decode(raw)
+
+
+_SYSTEM_EVAL = (
+    "You are a real-time hardware assembly safety checker. You receive a webcam "
+    "image of an Arduino + breadboard build in progress, along with a description "
+    "of what the current assembly step should look like.\n\n"
+    "Your job is NOT to verify exact pin positions. Your job is to answer two questions:\n"
+    "  1. Is anything DANGEROUS? (reversed polarity, short circuit, wrong power connections)\n"
+    "  2. Does the assembly roughly MATCH what is expected for this step?\n\n"
+    "Respond with STRICT JSON only:\n"
+    '{"verdict": "...", "confidence": 0.0-1.0, "detected_components": [...], "reasoning": "..."}\n\n'
+    "verdict must be exactly one of:\n"
+    "  success_advance       - assembly looks correct for this step, safe to proceed\n"
+    "  error_short_circuit   - a dangerous connection is visible (reversed polarity, VCC shorted to GND)\n"
+    "  error_wrong_placement - something is clearly connected in the wrong place or out of order\n"
+    "  error_occluded        - cannot assess the board (hand in frame, too blurry, too dark)\n\n"
+    "GROUNDING RULE: if your confidence is below 0.7 return error_occluded instead of guessing. "
+    "Never invent components you cannot clearly see."
+)
+
+
+async def _real_evaluate_frame(image_b64, current_step, expected_state):
+    from google.genai import types
+    client = _client()
+    prompt = (
+        f"Current step index: {current_step}\n"
+        f"Expected board state: {expected_state}\n"
+        "Assess the image now and return the strict JSON verdict."
+    )
+    resp = await client.aio.models.generate_content(
+        model=os.getenv("GEMINI_VISION_MODEL", DEFAULT_MODEL),
+        contents=[
+            types.Part.from_bytes(data=_decode_image(image_b64), mime_type="image/jpeg"),
+            types.Part.from_text(text=prompt),
+        ],
+        config=types.GenerateContentConfig(
+            system_instruction=_SYSTEM_EVAL,
+            response_mime_type="application/json",
+            temperature=0.1,
+        ),
+    )
+    data = json.loads(resp.text)
+    # Enforce the grounding rule even if the model ignored it.
+    if data.get("confidence", 1.0) < 0.7:
+        data["verdict"] = "error_occluded"
+    if data.get("verdict") not in _VALID_VERDICTS:
+        data["verdict"] = "error_occluded"
+    data.setdefault("confidence", 0.0)
+    data.setdefault("detected_components", [])
+    data.setdefault("reasoning", "")
+    return data
+
+
+def _instruction_text(step_index, context):
+    step = context.get("step") or {}
+    instr = step.get("instruction", f"assembly step {step_index}")
+    if context.get("correction"):
+        instr = f"CORRECTION for {context.get('verdict', 'error')}: {instr}"
+    if context.get("complete"):
+        instr = "Final confirmation: the build is complete and verified."
+    return instr
+
+
+async def _real_generate_single_pass(step_index, context):
+    """Optimistic path: one call returning TEXT + IMAGE + AUDIO together."""
+    # TODO verify: does google-genai support response_modalities with AUDIO+IMAGE
+    #              in a single generate_content call for the chosen model?
+    from google.genai import types
+    client = _client()
+    instr = _instruction_text(step_index, context)
+    prompt = (
+        f"Generate one assembly-tutor turn for: {instr}\n"
+        f"Return spoken narration (audio), an instruction diagram (image) drawn as "
+        f"{_IMAGE_STYLE}, and a one-sentence text caption."
+    )
+    resp = await client.aio.models.generate_content(
+        model=os.getenv("GEMINI_MULTIMODAL_MODEL", DEFAULT_MODEL),
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            response_modalities=["TEXT", "IMAGE", "AUDIO"],  # TODO unverified surface
+        ),
+    )
+    text, image_b64, audio_b64 = "", None, None
+    for part in resp.candidates[0].content.parts:
+        if getattr(part, "text", None):
+            text = part.text
+        inline = getattr(part, "inline_data", None)
+        if inline and inline.data:
+            mime = inline.mime_type or ""
+            payload = base64.b64encode(inline.data).decode()
+            if mime.startswith("image/"):
+                image_b64 = f"data:{mime};base64,{payload}"
+            elif mime.startswith("audio/"):
+                audio_b64 = payload  # TODO may be raw PCM - wrap as WAV if so
+    return {
+        "audio_b64": audio_b64 or _SILENT_WAV,
+        "image_b64": image_b64 or _mock_image("warning", "IMAGE PENDING",
+                                              "single_pass returned no image"),
+        "text": text or instr,
+        "agent_log": "[Planner] single_pass generation complete.",
+    }
+
+
+async def _real_generate_parallel(step_index, context):
+    """Robust path: three concurrent calls, each leg degrades independently."""
+    instr = _instruction_text(step_index, context)
+    text, image_b64, audio_b64 = await asyncio.gather(
+        _gen_text(instr), _gen_image(instr), _gen_audio(instr),
+        return_exceptions=True,
+    )
+    if isinstance(text, Exception) or not text:
+        text = instr
+    if isinstance(image_b64, Exception) or not image_b64:
+        image_b64 = _mock_image("warning", "IMAGE PENDING", "image leg failed")
+    if isinstance(audio_b64, Exception) or not audio_b64:
+        audio_b64 = _SILENT_WAV
+    return {
+        "audio_b64": audio_b64,
+        "image_b64": image_b64,
+        "text": text,
+        "agent_log": "[Planner] parallel generation complete (text+image+audio).",
+    }
+
+
+async def _gen_text(instr):
+    from google.genai import types
+    client = _client()
+    resp = await client.aio.models.generate_content(
+        model=os.getenv("GEMINI_TEXT_MODEL", DEFAULT_MODEL),
+        contents=[
+            "Write one short, friendly spoken instruction for this hardware "
+            f"assembly step. One or two sentences, no markdown: {instr}"
+        ],
+        config=types.GenerateContentConfig(temperature=0.4),
+    )
+    return resp.text.strip()
+
+
+async def _gen_image(instr):
+    # TODO verify Imagen model id + method signature against installed google-genai.
+    from google.genai import types
+    client = _client()
+    resp = await client.aio.models.generate_images(
+        model=os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-002"),
+        prompt=f"{instr}. Style: {_IMAGE_STYLE}.",
+        config=types.GenerateImagesConfig(number_of_images=1, aspect_ratio="4:3"),
+    )
+    raw = resp.generated_images[0].image.image_bytes
+    return "data:image/png;base64," + base64.b64encode(raw).decode()
+
+
+async def _gen_audio(instr):
+    # TODO verify TTS model id + audio container. Gemini TTS commonly returns raw
+    #      24kHz PCM - if so it must be wrapped in a WAV header before the browser
+    #      can decodeAudioData() it. Reuse _build_silent_wav's header logic.
+    from google.genai import types
+    client = _client()
+    resp = await client.aio.models.generate_content(
+        model=os.getenv("GEMINI_TTS_MODEL", DEFAULT_MODEL),
+        contents=[f"Say this clearly for a hardware tutorial: {instr}"],
+        config=types.GenerateContentConfig(response_modalities=["AUDIO"]),
+    )
+    for part in resp.candidates[0].content.parts:
+        inline = getattr(part, "inline_data", None)
+        if inline and inline.data and (inline.mime_type or "").startswith("audio/"):
+            return base64.b64encode(inline.data).decode()
+    raise RuntimeError("no audio part in TTS response")

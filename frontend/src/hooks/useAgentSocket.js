@@ -18,7 +18,7 @@ export function useAgentSocket(enabled) {
 // Nothing else in the codebase needs to change.
 
 // If the backend never answers a frame, drop the scan overlay anyway.
-const SCAN_TIMEOUT_MS = 12000;
+const SCAN_TIMEOUT_MS = 35000;
 
 /**
  * useAgentSocket(enabled)

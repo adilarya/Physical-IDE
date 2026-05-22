@@ -32,7 +32,7 @@ from circuits import get_circuit, get_step, step_count
 
 LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-3.1-flash-live-preview")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-FRAME_TIMEOUT_S = 12.0
+FRAME_TIMEOUT_S = 28.0
 
 _VALID_VERDICTS = {
     "success_advance",
@@ -171,7 +171,10 @@ class LiveAssemblySession:
         self.circuit = get_circuit(circuit_id)
         self.current_step = 1
 
-        self._client = genai.Client(api_key=GEMINI_API_KEY)
+        self._client = genai.Client(
+            api_key=GEMINI_API_KEY,
+            http_options={"api_version": "v1alpha"},
+        )
         self._frame_queue: asyncio.Queue = asyncio.Queue()
         self._result_queue: asyncio.Queue = asyncio.Queue()
         self._live_task: asyncio.Task | None = None
