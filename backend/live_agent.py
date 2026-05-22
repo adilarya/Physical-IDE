@@ -179,10 +179,10 @@ class LiveAssemblySession:
         print(f"[live_agent] Session ready ({LIVE_MODEL})")
         return _build_payload(
             "session_init",
-            step["instruction"],
-            "[Live] Gemini Live ready. Step 1 ready.",
+            "Film your breadboard and circuit to begin. Remove your hands from frame when ready to scan.",
+            "[Live] Gemini Live ready. Waiting for first frame.",
             1,
-            step.get("citation", ""),
+            "",
         )
 
     async def handle_frame(self, image_b64: str, current_step: int) -> dict:

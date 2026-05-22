@@ -80,7 +80,9 @@ export function useMockAgentSocket(enabled) {
     const t = setTimeout(() => {
       setConnected(true);
       appendLog('mock socket connected (no backend needed)', 'sys');
-      applyStep(1, 'session_init');
+      setStatus('session_init');
+      setInstructionText('Film your breadboard and circuit to begin. Remove your hands from frame when ready to scan.');
+      appendLog('[Live] Gemini Live ready. Waiting for first frame.');
     }, 500);
 
     return () => {
