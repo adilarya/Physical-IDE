@@ -1,3 +1,6 @@
+# deployment scripts (may contain secrets)
+backend/deploy.sh
+
 # python
 __pycache__/
 *.pyc
