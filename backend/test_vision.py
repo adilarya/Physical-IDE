@@ -27,6 +27,13 @@ import os
 import sys
 import argparse
 
+# Load .env before setting the default so the file's values win.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 os.environ.setdefault("MOCK_MODE", "true")
 
 VALID_VERDICTS = {
