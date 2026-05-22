@@ -20,6 +20,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent import AgentSession
+from live_agent import LiveAssemblySession
 
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
 
@@ -67,7 +68,7 @@ def _error_payload(session, text, agent_log):
 async def ws_agent(ws: WebSocket):
     await ws.accept()
     session = None
-    print("[main] client connected")
+    print(f"[main] client connected  (MOCK_MODE={MOCK_MODE})")
     try:
         while True:
             # --- receive: WebSocketDisconnect propagates to the outer handler -
@@ -75,9 +76,13 @@ async def ws_agent(ws: WebSocket):
 
 <<<<<<< Updated upstream
             if event == "start_session":
-                session = AgentSession(msg.get("circuit_id", "servo_control"))
+                circuit_id = msg.get("circuit_id", "servo_control")
+                if MOCK_MODE:
+                    session = AgentSession(circuit_id)
+                else:
+                    session = LiveAssemblySession(circuit_id)
                 await ws.send_json(await session.start())
-                print("[main] session started:", session.circuit_id)
+                print(f"[main] session started: {circuit_id} via {'mock' if MOCK_MODE else 'Gemini Live'}")
 
             elif event == "frame_eval":
                 if session is None:
@@ -144,6 +149,9 @@ async def ws_agent(ws: WebSocket):
             await ws.close()
         except Exception:
             pass
+    finally:
+        if session and hasattr(session, "close"):
+            await session.close()
 
 
 if __name__ == "__main__":
