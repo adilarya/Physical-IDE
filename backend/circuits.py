@@ -6,8 +6,53 @@ TODO: load these from Firestore / a content service post-hackathon.
 import copy
 
 CIRCUITS = {
+    "servo_control": {
+        "name": "Servo Motor Control",
+        "steps": [
+            {
+                "index": 1,
+                "instruction": "Connect a red jumper wire from the Arduino 5V pin to the positive (+) power rail on the breadboard.",
+                "expected_components": ["red_wire_5v_to_positive_rail"],
+                "success_criteria": "Red wire visible connecting Arduino 5V pin to the breadboard positive rail",
+                "common_errors": ["wire_in_wrong_arduino_pin", "wire_on_negative_rail", "no_wire_detected"],
+                "spatial": {
+                    "wire_start": "Arduino 5V pin",
+                    "wire_end": "breadboard positive rail (red line, top or bottom edge)",
+                    "wire_color": "red",
+                },
+                "citation": "Arduino Uno R3 - power pins reference, p.2",
+            },
+            {
+                "index": 2,
+                "instruction": "Connect a black jumper wire from the Arduino GND pin to the negative (-) power rail on the breadboard.",
+                "expected_components": ["black_wire_gnd_to_negative_rail"],
+                "success_criteria": "Black or brown wire visible connecting Arduino GND pin to the breadboard negative rail",
+                "common_errors": ["wire_on_positive_rail", "wrong_arduino_pin", "no_wire_detected"],
+                "spatial": {
+                    "wire_start": "Arduino GND pin",
+                    "wire_end": "breadboard negative rail (blue line, top or bottom edge)",
+                    "wire_color": "black or brown",
+                },
+                "citation": "Arduino Uno R3 - power and ground pins reference, p.2",
+            },
+            {
+                "index": 3,
+                "instruction": "Connect the servo to the breadboard: brown wire to the negative rail, red wire to the positive rail, and orange signal wire to a breadboard row connected to Arduino pin 9.",
+                "expected_components": ["servo_brown_to_gnd", "servo_red_to_5v", "servo_signal_to_pin9"],
+                "success_criteria": "Servo connector visible with three wires: brown on negative rail, red on positive rail, orange/yellow signal wire routed to Arduino digital pin 9",
+                "common_errors": ["servo_power_reversed", "signal_wire_missing", "servo_not_connected"],
+                "spatial": {
+                    "servo_gnd": "breadboard negative rail (brown wire)",
+                    "servo_vcc": "breadboard positive rail (red wire)",
+                    "servo_signal": "Arduino digital pin 9 (orange or yellow wire)",
+                },
+                "citation": "Servo motor wiring guide - SG90/MG90S pinout, p.1",
+            },
+        ],
+    },
+    # Original circuit kept for reference - requires LED and resistor
     "temperature_alarm": {
-        "name": "Temperature Alarm",
+        "name": "Temperature Alarm (requires LED + resistor)",
         "steps": [
             {
                 "index": 1,
@@ -15,8 +60,6 @@ CIRCUITS = {
                 "expected_components": ["red_wire_5v_to_rail"],
                 "success_criteria": "Red wire visible from Arduino 5V to breadboard + rail",
                 "common_errors": ["wire_in_wrong_pin", "no_wire_detected"],
-                # citation is surfaced in the downstream payload; added beyond the
-                # base spec so the locked contract's `citation` field is populated.
                 "citation": "Arduino Uno R3 - power pins reference, p.2",
             },
             {

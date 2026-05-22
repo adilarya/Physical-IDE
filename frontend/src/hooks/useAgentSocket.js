@@ -3,7 +3,7 @@ import { useMockAgentSocket } from './useMockAgentSocket';
 
 // Single env-var swap to point at Cloud Run - see frontend/.env.example.
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/agent';
-const CIRCUIT_ID = 'temperature_alarm';
+const CIRCUIT_ID = 'servo_control';
 
 // VITE_MOCK_SOCKET=true → play the scripted beat in-browser, no backend needed.
 // Athif: add this to frontend/.env to work without the backend running.

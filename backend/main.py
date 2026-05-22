@@ -56,14 +56,14 @@ async def ws_agent(ws: WebSocket):
             event = msg.get("event")
 
             if event == "start_session":
-                session = AgentSession(msg.get("circuit_id", "temperature_alarm"))
+                session = AgentSession(msg.get("circuit_id", "servo_control"))
                 await ws.send_json(await session.start())
                 print("[main] session started:", session.circuit_id)
 
             elif event == "frame_eval":
                 if session is None:
                     # tolerate a missing start_session so the UI never deadlocks
-                    session = AgentSession(msg.get("circuit_id", "temperature_alarm"))
+                    session = AgentSession(msg.get("circuit_id", "servo_control"))
                 payload = await session.handle_frame(
                     msg["image_b64"], int(msg["current_step"]))
                 await ws.send_json(payload)

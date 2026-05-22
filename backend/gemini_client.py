@@ -140,43 +140,42 @@ _STEPS = {
         kind="wire", label="STEP 1 / 3  -  POWER RAIL",
         caption="Red jumper:  Arduino 5V  ->  breadboard (+) rail",
         text="Step 1 of 3 - Power rail. Take a red jumper wire and connect the "
-             "Arduino's 5V pin to the red positive rail of the breadboard. This "
-             "is the power supply line for the whole circuit.",
-        log="[Planner] Generated Step 1 (power rail). Modalities: text+image+audio.",
+             "Arduino 5V pin to the positive rail of the breadboard. This powers "
+             "the entire circuit.",
+        log="[Planner] Generated Step 1 (5V power rail). Modalities: text+image+audio.",
     ),
     2: dict(
-        kind="led", label="STEP 2 / 3  -  THE LED",
-        caption="LED anode -> row 10,   cathode -> row 11",
-        text="Step 2 of 3 - The LED. Place the LED across the center gap. The "
-             "longer leg, the anode, goes into row 10; the shorter leg, the "
-             "cathode, goes into row 11.",
-        log="[Planner] Generated Step 2 (LED placement).",
+        kind="wire", label="STEP 2 / 3  -  GROUND RAIL",
+        caption="Black jumper:  Arduino GND  ->  breadboard (-) rail",
+        text="Step 2 of 3 - Ground rail. Take a black jumper wire and connect the "
+             "Arduino GND pin to the negative rail of the breadboard. This completes "
+             "the power circuit.",
+        log="[Planner] Generated Step 2 (GND rail).",
     ),
     3: dict(
-        kind="resistor", label="STEP 3 / 3  -  CURRENT LIMIT",
-        caption="220 ohm resistor:  row 11  ->  (-) ground rail",
-        text="Step 3 of 3 - Current-limiting resistor. Bridge a 220-ohm resistor "
-             "from row 11 to the blue ground rail. This protects the LED from "
-             "drawing too much current.",
-        log="[Planner] Generated Step 3 (220 ohm resistor).",
+        kind="resistor", label="STEP 3 / 3  -  SERVO",
+        caption="Servo: brown -> (-) rail,  red -> (+) rail,  orange -> pin 9",
+        text="Step 3 of 3 - Servo connection. Connect the servo brown wire to the "
+             "negative rail, red wire to the positive rail, and orange signal wire "
+             "to Arduino digital pin 9.",
+        log="[Planner] Generated Step 3 (servo wiring).",
     ),
 }
 
 _DONE_STEP = dict(
     kind="done", label="BUILD COMPLETE",
-    caption="Temperature alarm circuit verified  -  3 / 3 steps",
-    text="Assembly complete. All three steps verified - your temperature alarm "
-         "circuit is wired correctly. Power the Arduino to test it.",
+    caption="Servo control circuit verified  -  3 / 3 steps",
+    text="Assembly complete. All three steps verified - your servo control circuit "
+         "is wired correctly. Upload a sweep sketch to the Arduino to test it.",
     log="[Planner] Build complete. 3/3 steps verified.",
 )
 
 _CORRECTIONS = {
     "error_short_circuit": dict(
-        text="SAFETY STOP. The LED legs are bridging the positive rail directly "
-             "- that is a short circuit and will damage the component. Pull the "
-             "short leg, the cathode, out of the positive rail and move it to "
-             "row 11 before continuing.",
-        log="[Planner] SAFETY INTERRUPT - short circuit on +5V rail. Re-scan required.",
+        text="SAFETY STOP. The servo power wires appear reversed - red must go to "
+             "the positive rail and brown to the negative rail. Swapped polarity "
+             "will damage the servo immediately. Disconnect and rewire before continuing.",
+        log="[Planner] SAFETY INTERRUPT - servo polarity reversal detected. Re-scan required.",
     ),
     "error_occluded": dict(
         text="I can't see the board clearly - a hand or shadow is covering the "
@@ -184,8 +183,8 @@ _CORRECTIONS = {
         log="[Planner] View occluded - requesting a clean frame.",
     ),
     "error_wrong_placement": dict(
-        text="That component isn't in the expected position. Re-check the row "
-             "numbers against the instruction and reposition it before continuing.",
+        text="That wire isn't in the expected position. Re-check which rail or pin "
+             "it connects to against the instruction and reposition before continuing.",
         log="[Planner] Wrong placement detected - correction issued.",
     ),
 }

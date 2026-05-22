@@ -18,31 +18,31 @@ const RESPONSE_DELAY_MS = 900;
 
 const STEPS = {
   1: {
-    text: 'Step 1 of 3 — Power rail. Take a red jumper wire and connect the Arduino\'s 5V pin to the positive (+) rail on the breadboard.',
+    text: 'Step 1 of 3 — Power rail. Take a red jumper wire and connect the Arduino 5V pin to the positive (+) rail on the breadboard.',
     citation: 'Arduino Uno R3 - power pins reference, p.2',
-    agent_log: '[Planner] Generated Step 1 (power rail). Mock mode.',
+    agent_log: '[Planner] Generated Step 1 (5V power rail). Mock mode.',
   },
   2: {
-    text: 'Step 2 of 3 — The LED. Place the LED across the center gap. Longer leg (anode) in row 10, shorter leg (cathode) in row 11.',
-    citation: 'LED polarity guide - anode vs cathode, p.1',
-    agent_log: '[Planner] Generated Step 2 (LED placement). Mock mode.',
+    text: 'Step 2 of 3 — Ground rail. Take a black jumper wire and connect the Arduino GND pin to the negative (–) rail on the breadboard.',
+    citation: 'Arduino Uno R3 - power and ground pins reference, p.2',
+    agent_log: '[Planner] Generated Step 2 (GND rail). Mock mode.',
   },
   3: {
-    text: 'Step 3 of 3 — Current-limiting resistor. Bridge a 220-ohm resistor from row 11 to the blue ground rail.',
-    citation: 'Resistor color codes - 220 ohm band reference, p.4',
-    agent_log: '[Planner] Generated Step 3 (220 ohm resistor). Mock mode.',
+    text: 'Step 3 of 3 — Servo connection. Connect the servo brown wire to the negative rail, red wire to the positive rail, and orange signal wire to Arduino pin 9.',
+    citation: 'Servo motor wiring guide - SG90/MG90S pinout, p.1',
+    agent_log: '[Planner] Generated Step 3 (servo wiring). Mock mode.',
   },
   done: {
-    text: 'Assembly complete. All three steps verified — your temperature alarm circuit is wired correctly. Power the Arduino to test it.',
+    text: 'Assembly complete. All three steps verified — your servo control circuit is wired correctly. Upload a sweep sketch to Arduino to test it.',
     citation: '',
     agent_log: '[Planner] Build complete. 3/3 steps verified. Mock mode.',
   },
 };
 
 const SHORT_CIRCUIT_CORRECTION = {
-  text: 'SAFETY STOP. The LED legs are bridging the positive rail directly — that is a short circuit and will damage the component. Pull the short leg (cathode) out of the positive rail and move it to row 11.',
+  text: 'SAFETY STOP. The servo power wires appear reversed — red must go to the positive rail and brown to the negative rail. Swapped polarity will damage the servo immediately.',
   citation: '',
-  agent_log: '[Watcher] SHORT CIRCUIT on +5V rail. [Planner] SAFETY INTERRUPT — correction issued.',
+  agent_log: '[Watcher] POLARITY ERROR on servo connector. [Planner] SAFETY INTERRUPT — correction issued.',
 };
 
 export function useMockAgentSocket(enabled) {
