@@ -127,10 +127,18 @@ def _mock_generate(step_index, context):
             "agent_log": c["log"],
         }
     s = _STEPS.get(step_index, _DONE_STEP)
+    # Prefer the live circuit instruction when the Planner passes a step in
+    # context: this is what surfaces constraint-routed changes (e.g. a
+    # 220->470 ohm substitution) into the payload in mock mode. Fall back to
+    # the canned narration when no step is present (e.g. the "done" turn).
+    step = context.get("step") or {}
+    text = s["text"]
+    if step.get("instruction"):
+        text = f"Step {step_index} of 3 - {step['instruction']}"
     return {
         "audio_b64": _SILENT_WAV,
         "image_b64": _mock_image(s["kind"], s["label"], s["caption"]),
-        "text": s["text"],
+        "text": text,
         "agent_log": s["log"],
     }
 

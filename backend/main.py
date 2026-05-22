@@ -45,6 +45,24 @@ def healthz():
     return {"ok": True}
 
 
+def _error_payload(session, text, agent_log):
+    """Build a contract-valid downstream payload for a protocol-level error.
+
+    status 'error_protocol' is emitted ONLY here in main.py - for malformed
+    input or unprocessable events. It is never a Watcher verdict, so the agent
+    pipeline never produces it.
+    """
+    return {
+        "status": "error_protocol",
+        "audio_b64": "",
+        "image_b64": "",
+        "text": text,
+        "agent_log": agent_log,
+        "current_step": session.current_step if session else 1,
+        "citation": "",
+    }
+
+
 @app.websocket("/ws/agent")
 async def ws_agent(ws: WebSocket):
     await ws.accept()
@@ -52,9 +70,10 @@ async def ws_agent(ws: WebSocket):
     print("[main] client connected")
     try:
         while True:
-            msg = json.loads(await ws.receive_text())
-            event = msg.get("event")
+            # --- receive: WebSocketDisconnect propagates to the outer handler -
+            raw = await ws.receive_text()
 
+<<<<<<< Updated upstream
             if event == "start_session":
                 session = AgentSession(msg.get("circuit_id", "servo_control"))
                 await ws.send_json(await session.start())
@@ -69,17 +88,53 @@ async def ws_agent(ws: WebSocket):
                 await ws.send_json(payload)
                 print(f"[main] frame_eval step={msg.get('current_step')} "
                       f"-> {payload['status']} (next={payload['current_step']})")
+=======
+            # --- parse: a malformed message must NOT kill the connection ------
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError as e:
+                await ws.send_json(_error_payload(
+                    session, f"malformed JSON: {e}",
+                    "[main] dropped malformed JSON"))
+                continue
 
-            else:
-                await ws.send_json({
-                    "status": "error_occluded",
-                    "audio_b64": "",
-                    "image_b64": "",
-                    "text": f"Unknown event: {event}",
-                    "agent_log": f"[main] dropped unknown event '{event}'",
-                    "current_step": session.current_step if session else 1,
-                    "citation": "",
-                })
+            # --- dispatch: any handler error degrades to an error payload -----
+            try:
+                event = msg.get("event")
+>>>>>>> Stashed changes
+
+                if event == "start_session":
+                    constraints = msg.get("user_constraints", [])
+                    session = AgentSession(
+                        msg.get("circuit_id", "temperature_alarm"), constraints)
+                    await ws.send_json(await session.start())
+                    print(f"[main] session started: {session.circuit_id} "
+                          f"constraints={constraints}")
+
+                elif event == "frame_eval":
+                    if session is None:
+                        # tolerate a missing start_session so the UI never deadlocks
+                        session = AgentSession(
+                            msg.get("circuit_id", "temperature_alarm"))
+                    payload = await session.handle_frame(
+                        msg["image_b64"], int(msg["current_step"]))
+                    await ws.send_json(payload)
+                    print(f"[main] frame_eval step={msg.get('current_step')} "
+                          f"-> {payload['status']} (next={payload['current_step']})")
+
+                else:
+                    await ws.send_json(_error_payload(
+                        session, f"Unknown event: {event}",
+                        f"[main] dropped unknown event '{event}'"))
+
+            except WebSocketDisconnect:
+                raise  # MUST re-raise: it is an Exception subclass, not a bug
+            except Exception as e:  # noqa: BLE001 - one bad message must not crash the session
+                print(f"[main] handler error: {e!r}")
+                await ws.send_json(_error_payload(
+                    session, f"could not process event: {e}",
+                    f"[main] handler error: {e!r}"))
+                continue
 
     except WebSocketDisconnect:
         print("[main] client disconnected")

@@ -9,7 +9,7 @@ AgentSession owns the per-connection state (which step the user is on) and
 orchestrates Watcher -> Planner for every captured frame. The output of
 handle_frame() / start() is the locked downstream contract object.
 """
-from circuits import get_circuit, get_step, step_count
+from circuits import get_circuit_with_constraints
 from gemini_client import evaluate_frame, generate_next_step, reset_mock_state
 
 
@@ -35,26 +35,64 @@ class Planner:
 class AgentSession:
     """One instance per WebSocket connection. Drives a single circuit build."""
 
-    def __init__(self, circuit_id):
+    def __init__(self, circuit_id, constraints=None):
         self.circuit_id = circuit_id
-        self.circuit = get_circuit(circuit_id)   # raises KeyError on bad id
+        self.constraints = constraints or []
+        # Build the (possibly constraint-adapted) circuit ONCE. Every method
+        # below reads self.circuit - never the global CIRCUITS - so the whole
+        # session runs against one consistent, owned copy. Raises KeyError on
+        # a bad circuit_id.
+        self.circuit = get_circuit_with_constraints(circuit_id, self.constraints)
         self.current_step = 1
         self.watcher = Watcher()
         self.planner = Planner()
+
+    def _step(self, index):
+        """1-based step lookup into this session's adapted circuit.
+
+        Returns None when the index is out of range (mirrors the semantics of
+        circuits.get_step, but sources from the session-owned adapted copy).
+        """
+        steps = self.circuit["steps"]
+        if 1 <= index <= len(steps):
+            return steps[index - 1]
+        return None
 
     async def start(self):
         """Emit the session_init payload (Step 1 instruction)."""
         reset_mock_state()   # so repeated demo runs replay the scripted beat
         self.current_step = 1
-        step = get_step(self.circuit_id, 1)
+        step = self._step(1)
         planner_out = await self.planner.run(1, {"fresh": True, "step": step})
         return _payload("session_init", planner_out, current_step=1,
-                        citation=step.get("citation", ""))
+                        citation=step.get("citation", "") if step else "")
 
     async def handle_frame(self, image_b64, current_step):
-        """Run Watcher -> Planner for one frame; return a downstream payload."""
+        """Run Watcher -> Planner for one frame; return a downstream payload.
+
+        `current_step` comes straight from the client and is not trusted:
+          - greater than the step count -> the build is already finished, so
+            re-emit the completion turn instead of evaluating a step that does
+            not exist;
+          - less than 1 -> a malformed index; snap to step 1.
+        After this guard `current_step` is always a valid 1-based index.
+        """
+        total = len(self.circuit["steps"])
+
+        # --- clamp an out-of-range step index from the client --------------
+        if current_step > total:
+            self.current_step = total + 1
+            planner_out = await self.planner.run("done", {"complete": True})
+            return _payload(
+                "success_advance", planner_out, current_step=total + 1,
+                watcher_log=(f"[Watcher] skipped - build already complete "
+                             f"(client sent step {current_step}, circuit has "
+                             f"{total} steps)"))
+        if current_step < 1:
+            current_step = 1
+
         self.current_step = current_step
-        step = get_step(self.circuit_id, current_step)
+        step = self._step(current_step)
         expected = step["success_criteria"] if step else ""
 
         # --- WATCHER -------------------------------------------------------
@@ -66,19 +104,20 @@ class AgentSession:
         if verdict == "success_advance":
             next_step = current_step + 1
 
-            if next_step > step_count(self.circuit_id):
+            if next_step > total:
                 # build finished - emit the completion turn
                 planner_out = await self.planner.run("done", {"complete": True})
                 self.current_step = next_step
                 return _payload("success_advance", planner_out,
                                 current_step=next_step, watcher_log=watcher_log)
 
-            nstep = get_step(self.circuit_id, next_step)
+            nstep = self._step(next_step)
             planner_out = await self.planner.run(
                 next_step, {"fresh": True, "step": nstep})
             self.current_step = next_step
             return _payload("success_advance", planner_out, current_step=next_step,
-                            watcher_log=watcher_log, citation=nstep.get("citation", ""))
+                            watcher_log=watcher_log,
+                            citation=nstep.get("citation", "") if nstep else "")
 
         # error verdict - stay on the current step, push a correction
         planner_out = await self.planner.run(current_step, {

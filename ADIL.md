@@ -79,7 +79,7 @@ This is the single most important thing you own. Both Athif and Eshwar depend on
 
 ```json
 {
-  "status": "session_init | success_advance | error_short_circuit | error_occluded | error_wrong_placement",
+  "status": "session_init | success_advance | error_short_circuit | error_occluded | error_wrong_placement | error_protocol",
   "audio_b64": "base64-encoded WAV string (no data: prefix)",
   "image_b64": "data:image/...;base64,... (full data URI with prefix)",
   "text": "Human-readable instruction or correction",
@@ -95,6 +95,7 @@ Rules:
 - `image_b64` always has the `data:` prefix
 - `current_step` greater than the total step count (3) signals build complete
 - `citation` can be an empty string — never `null`
+- `error_protocol` is emitted only by `main.py` for malformed input or unknown events — never by the agent/Watcher
 
 ---
 
@@ -214,7 +215,7 @@ Step 3 instruction should mention 470-ohm instead of 220-ohm.
 ```json
 {"event":"bad_event"}
 ```
-Should return an `error_occluded` payload, not crash the connection.
+Should return an `error_protocol` payload, not crash the connection.
 
 ---
 

@@ -72,7 +72,7 @@ can re-run the demo back to back.
 
 ```json
 {
-  "status": "success_advance | error_short_circuit | error_occluded | error_wrong_placement | session_init",
+  "status": "success_advance | error_short_circuit | error_occluded | error_wrong_placement | session_init | error_protocol",
   "audio_b64": "base64-wav-or-mp3 (no data: prefix)",
   "image_b64": "data:image/...;base64,...",
   "text": "Step 3: Connect the 220-ohm resistor from row 11 to the ground rail.",
