@@ -154,49 +154,34 @@ class LiveAssemblySession:
     # ------------------------------------------------------------------
 
     async def start(self) -> dict:
-        """Open the Live session and return the session_init payload."""
-        self._live_task = asyncio.create_task(self._run())
-        # Wait until the Live connection is established (or fail fast)
-        try:
-            await asyncio.wait_for(self._ready.wait(), timeout=8.0)
-        except asyncio.TimeoutError:
-            raise RuntimeError("Gemini Live session failed to connect within 8s")
-
+        """Return the session_init payload. Live sessions are opened per-frame."""
         self.current_step = 1
         step = get_step(self.circuit_id, 1)
+        print(f"[live_agent] Session ready ({LIVE_MODEL})")
         return _build_payload(
             "session_init",
             step["instruction"],
-            "[Live] Gemini Live session connected. Step 1 ready.",
+            "[Live] Gemini Live ready. Step 1 ready.",
             1,
             step.get("citation", ""),
         )
 
     async def handle_frame(self, image_b64: str, current_step: int) -> dict:
-        """Send a frame to the Live session and return the verdict payload."""
+        """Open a fresh Live session, evaluate this frame, return verdict payload."""
         self.current_step = current_step
         step = get_step(self.circuit_id, current_step)
         if step is None:
-            # Past the last step — build complete
             return _build_payload(
                 "success_advance",
-                "Assembly complete. All steps verified.",
+                "Assembly complete. All steps verified — great work!",
                 "[Live] Build complete.",
                 current_step,
             )
 
-        await self._frame_queue.put({
-            "image_b64": image_b64,
-            "step": current_step,
-            "success_criteria": step.get("success_criteria", ""),
-            "danger_signals": step.get("danger_signals", []),
-            "instruction": step.get("instruction", ""),
-            "citation": step.get("citation", ""),
-        })
-
         try:
             result = await asyncio.wait_for(
-                self._result_queue.get(), timeout=FRAME_TIMEOUT_S
+                self._evaluate(image_b64, step, current_step),
+                timeout=FRAME_TIMEOUT_S,
             )
         except asyncio.TimeoutError:
             return _build_payload(
@@ -228,7 +213,6 @@ class LiveAssemblySession:
                 next_step_data.get("citation", ""),
             )
 
-        # Error verdict — stay on current step, surface the correction
         return _build_payload(
             verdict,
             result["instruction"] or step.get("instruction", ""),
@@ -238,76 +222,60 @@ class LiveAssemblySession:
         )
 
     async def close(self):
-        if self._live_task:
-            self._live_task.cancel()
-            try:
-                await self._live_task
-            except asyncio.CancelledError:
-                pass
+        pass  # no persistent resources to clean up
 
     # ------------------------------------------------------------------
-    # Internal — persistent Live session background task
+    # Internal — one Live session per frame evaluation
     # ------------------------------------------------------------------
 
-    async def _run(self):
+    async def _evaluate(self, image_b64: str, step: dict, current_step: int) -> dict:
+        """Open a Gemini Live session, send one frame, collect the verdict."""
         config = types.LiveConnectConfig(
-            response_modalities=["TEXT"],
+            response_modalities=["AUDIO"],
+            output_audio_transcription=types.AudioTranscriptionConfig(),
             system_instruction=_SYSTEM_INSTRUCTION,
         )
-        try:
-            async with self._client.aio.live.connect(
-                model=LIVE_MODEL, config=config
-            ) as session:
-                self._ready.set()
-                print(f"[live_agent] Gemini Live connected ({LIVE_MODEL})")
+        image_bytes = _decode_image(image_b64)
+        context = (
+            f"Step {current_step}: {step.get('success_criteria', '')}. "
+            f"Danger signals: {', '.join(step.get('danger_signals', [])) or 'none'}. "
+            "Evaluate this image and give your verdict."
+        )
 
-                # Run sender and receiver concurrently for the lifetime of
-                # this WebSocket connection.
-                await asyncio.gather(
-                    self._sender(session),
-                    self._receiver(session),
-                )
-
-        except asyncio.CancelledError:
-            print("[live_agent] Live session closed (WebSocket disconnected)")
-        except Exception as e:
-            print(f"[live_agent] Live session error: {e!r}")
-            self._ready.set()  # unblock start() so it can raise
-
-    async def _sender(self, session):
-        """Read frames from the queue and stream them to Gemini Live."""
-        while True:
-            frame_data = await self._frame_queue.get()
-
-            context = (
-                f"Step {frame_data['step']}: {frame_data['success_criteria']}. "
-                f"Danger signals to watch for: {', '.join(frame_data['danger_signals']) or 'none'}."
-            )
-            await session.send_realtime_input(text=context)
-
-            image_bytes = _decode_image(frame_data["image_b64"])
-            await session.send_realtime_input(
-                video=types.Blob(data=image_bytes, mime_type="image/jpeg")
-            )
-
-    async def _receiver(self, session):
-        """Collect streamed text responses and put parsed verdicts in the result queue."""
         accumulated = ""
-        async for response in session.receive():
-            if response.server_content:
-                if response.server_content.model_turn:
-                    for part in response.server_content.model_turn.parts:
-                        if part.text:
-                            accumulated += part.text
+        async with self._client.aio.live.connect(model=LIVE_MODEL, config=config) as session:
+            await session.send_client_content(
+                turns=types.Content(
+                    role="user",
+                    parts=[
+                        types.Part(text=context),
+                        types.Part(
+                            inline_data=types.Blob(
+                                data=image_bytes, mime_type="image/jpeg"
+                            )
+                        ),
+                    ],
+                ),
+                turn_complete=True,
+            )
 
-                if response.server_content.turn_complete:
-                    parsed = _parse_response(accumulated, self.current_step)
-                    if parsed is None:
-                        # Could not parse — return occluded so the demo never stalls
-                        parsed = {
-                            "verdict": "error_occluded",
-                            "instruction": "Could not read the board clearly. Please hold still and try again.",
-                            "agent_log": f"[Live] Failed to parse model response: {accumulated[:80]!r}",
-                        }
-                    await self._result_queue.put(parsed)
-                    accumulated = ""
+            async for response in session.receive():
+                if response.server_content:
+                    if response.server_content.output_transcription:
+                        accumulated += response.server_content.output_transcription.text or ""
+                    if response.server_content.model_turn:
+                        for part in response.server_content.model_turn.parts:
+                            if part.text:
+                                accumulated += part.text
+                    if response.server_content.turn_complete:
+                        break
+
+        parsed = _parse_response(accumulated, current_step)
+        if parsed is None:
+            return {
+                "verdict": "error_occluded",
+                "instruction": "Could not read the board clearly. Please hold still and try again.",
+                "agent_log": f"[Live] Could not parse response: {accumulated[:80]!r}",
+            }
+        print(f"[live_agent] step={current_step} verdict={parsed['verdict']} raw={accumulated[:60]!r}")
+        return parsed
