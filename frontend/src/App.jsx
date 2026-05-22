@@ -5,6 +5,7 @@ import { useAgentSocket } from './hooks/useAgentSocket';
 import ScanOverlay from './components/ScanOverlay';
 import InstructionCard from './components/InstructionCard';
 import AgentLog from './components/AgentLog';
+import ChatPanel from './components/ChatPanel';
 
 const TOTAL_STEPS = 3;
 
@@ -13,6 +14,11 @@ export default function App() {
   // (required for getUserMedia + AudioContext autoplay policies).
   const [started, setStarted] = useState(false);
   const [videoWidth, setVideoWidth] = useState(380);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [tutorialState, setTutorialState] = useState({
+    loading: false, thinking: '', goal: '', steps: [],
+    totalSteps: 0, complete: false, error: '',
+  });
   const dragging = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
@@ -35,6 +41,29 @@ export default function App() {
     if (!socket.connected || socket.scanning) return;
     socket.sendFrame(captureFrame());
   };
+
+  // Tutorial: send goal to backend and handle streaming steps
+  const sendTutorialGoal = useCallback((goal) => {
+    setTutorialState({ loading: true, thinking: '', goal, steps: [], totalSteps: 0, complete: false, error: '' });
+    socket.sendTutorial(goal);
+  }, [socket]);
+
+  // Handle tutorial events streamed from the backend
+  useEffect(() => {
+    const ev = socket.tutorialEvent;
+    if (!ev) return;
+    if (ev.event === 'tutorial_thinking') {
+      setTutorialState(p => ({ ...p, thinking: ev.text }));
+    } else if (ev.event === 'tutorial_start') {
+      setTutorialState(p => ({ ...p, thinking: '', totalSteps: ev.total_steps, goal: ev.goal }));
+    } else if (ev.event === 'tutorial_step') {
+      setTutorialState(p => ({ ...p, steps: [...p.steps, ev] }));
+    } else if (ev.event === 'tutorial_complete') {
+      setTutorialState(p => ({ ...p, loading: false, complete: true, thinking: '' }));
+    } else if (ev.event === 'tutorial_error') {
+      setTutorialState(p => ({ ...p, loading: false, error: ev.text, thinking: '' }));
+    }
+  }, [socket.tutorialEvent]);
 
   // Drag-to-resize the video panel
   const onDragHandleMouseDown = useCallback((e) => {
@@ -72,6 +101,22 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col p-4 gap-4">
+      <ChatPanel
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        sendMessage={sendTutorialGoal}
+        tutorialState={tutorialState}
+      />
+
+      {/* Chat icon — bottom right */}
+      <button
+        onClick={() => setChatOpen(o => !o)}
+        title="Circuit Planner"
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-400 shadow-lg flex items-center justify-center text-slate-950 text-xl transition-transform hover:scale-110"
+      >
+        ⚡
+      </button>
+
       <Header
         connected={socket.connected}
         step={socket.currentStep}

@@ -132,5 +132,7 @@ export function useMockAgentSocket(enabled) {
     citation,
     log,
     sendFrame,
+    sendTutorial: () => {},
+    tutorialEvent: null,
   };
 }

@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agent import AgentSession
 from live_agent import LiveAssemblySession
+from tutorial import generate_tutorial
 
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
 
@@ -111,6 +112,13 @@ async def ws_agent(ws: WebSocket):
                     await ws.send_json(payload)
                     print(f"[main] frame_eval step={msg.get('current_step')} "
                           f"-> {payload['status']} (next={payload['current_step']})")
+
+                elif event == "generate_tutorial":
+                    goal = msg.get("goal", "").strip()
+                    if goal:
+                        await generate_tutorial(goal, ws.send_json)
+                    else:
+                        await ws.send_json({"event": "tutorial_error", "text": "Please describe what you want to build."})
 
                 else:
                     await ws.send_json(_error_payload(

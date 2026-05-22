@@ -35,6 +35,7 @@ function useRealAgentSocket(enabled) {
   const [instructionImage, setInstructionImage] = useState(null);
   const [citation, setCitation] = useState('');
   const [log, setLog] = useState([]);
+  const [tutorialEvent, setTutorialEvent] = useState(null);
 
   const wsRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -130,6 +131,11 @@ function useRealAgentSocket(enabled) {
         } catch {
           return;
         }
+        // Tutorial events are handled separately from the main payload
+        if (msg.event && msg.event.startsWith('tutorial_')) {
+          setTutorialEvent({ ...msg, _ts: Date.now() });
+          return;
+        }
         handlePayload(msg);
       };
 
@@ -154,6 +160,13 @@ function useRealAgentSocket(enabled) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  // ----- upstream: send tutorial goal -------------------------------------
+  const sendTutorial = useCallback((goal) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ event: 'generate_tutorial', goal }));
+  }, []);
 
   // ----- upstream: send a captured frame -----------------------------------
   const sendFrame = useCallback(
@@ -195,5 +208,7 @@ function useRealAgentSocket(enabled) {
     citation,
     log,
     sendFrame,
+    sendTutorial,
+    tutorialEvent,
   };
 }
