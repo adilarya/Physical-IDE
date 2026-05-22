@@ -79,3 +79,58 @@ The same architecture that guides a student also audits a factory worker:
                      (Spatial Verification)             (Lego/Instruction Generation)
                                           \                      /
 [React UI] <--(Audio+Image Payload over WS)--- [Cloud Run FastAPI]
+```
+
+---
+
+## 6. Two-Phase Product Architecture
+
+The product has two distinct phases that connect end-to-end:
+
+### Phase 1 — Tutorial Phase (PLANNED, not yet built)
+**Goal:** User describes what they want their breadboard to do in natural language. The system generates a full Lego-style step-by-step wiring guide.
+
+**Flow:**
+```
+User speaks goal → Gemini 3.1 Pro generates circuit plan + steps
+                 → Imagen 3 generates isometric Lego-style image per step
+                 → gemini-3.1-flash-tts-preview narrates each step aloud
+                 → Frontend displays image + plays audio for each step
+```
+
+**Models used:**
+- `gemini-3.1-pro-preview` — understands the goal, generates the circuit design and step instructions
+- `imagen-3.0-generate-002` — generates the Lego-style isometric assembly diagrams
+- `gemini-3.1-flash-tts-preview` — dedicated TTS model narrates each step with high-quality voice
+
+**What it produces:** A numbered step list, each with an image and audio — like an interactive Lego manual generated on the fly for any circuit goal.
+
+---
+
+### Phase 2 — Verification Phase (BUILT AND WORKING)
+**Goal:** As the user physically assembles the circuit from Phase 1, the agent watches via webcam and catches errors in real time.
+
+**Flow:**
+```
+User removes hands from frame → MediaPipe triggers scan
+                              → JPEG frame sent over WebSocket to FastAPI
+                              → Gemini Live API evaluates frame (vision + audio native)
+                              → Spoken verdict + WAV audio returned
+                              → Frontend plays audio, updates instruction panel
+```
+
+**Models used:**
+- `gemini-3.1-flash-live-preview` (Gemini Live API) — sees the board, speaks the verdict natively. One call handles vision + verdict + voice.
+
+**Verdicts:**
+- `PASS` → step verified, advance to next
+- `WRONG` → component misplaced or out of order
+- `DANGER` → dangerous connection (reversed polarity, short circuit)
+- `UNCLEAR` → board not visible, hand in frame
+
+---
+
+### How the phases connect
+Phase 1 generates the `circuits.py` step definitions dynamically (instead of hardcoded). Phase 2 verifies against those steps. The full loop: *describe → plan → build → verify*.
+
+Currently Phase 2 uses a hardcoded `servo_control` circuit. When Phase 1 is built, it will generate the circuit definition and pass it into the verification pipeline automatically.
