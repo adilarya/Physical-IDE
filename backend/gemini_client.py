@@ -468,7 +468,7 @@ async def _gen_audio(instr):
     from google.genai import types
     client = _client()
     resp = await client.aio.models.generate_content(
-        model=os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts"),
+        model=os.getenv("GEMINI_TTS_MODEL", DEFAULT_MODEL),
         contents=[f"Say this clearly for a hardware tutorial: {instr}"],
         config=types.GenerateContentConfig(response_modalities=["AUDIO"]),
     )
