@@ -1,0 +1,7 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+websockets==14.1
+python-dotenv==1.0.1
+# google-genai: kept unpinned per spec ("latest"). If a build breaks, pin the
+# last-known-good version here. TODO: pin before submission for reproducibility.
+google-genai

@@ -1,0 +1,123 @@
+/* index.css - custom keyframes only.
+   Utility classes come from the Tailwind CDN in index.html. */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #060a14;
+  color: #cdd6e6;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ----- terminal log scrollbar ----- */
+.log-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #1e2b45 transparent;
+}
+.log-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.log-scroll::-webkit-scrollbar-thumb {
+  background: #1e2b45;
+  border-radius: 3px;
+}
+
+/* =====================================================================
+   DEEP-SCAN OVERLAY  -  this is branding, not a loading spinner.
+   A sweeping orange grid + scan band + AR fiducials + recognition reticles.
+   ===================================================================== */
+
+.scan-root {
+  animation: scan-fade-in 220ms ease-out;
+}
+@keyframes scan-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* moving measurement grid */
+.scan-grid {
+  background-image:
+    linear-gradient(rgba(248, 147, 43, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(248, 147, 43, 0.18) 1px, transparent 1px);
+  background-size: 34px 34px;
+  animation: grid-pan 2.4s linear infinite;
+}
+@keyframes grid-pan {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 34px 34px, 34px 34px; }
+}
+
+/* vertical sweep band travelling top -> bottom */
+.scan-sweep {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(248, 147, 43, 0) 42%,
+    rgba(248, 147, 43, 0.55) 50%,
+    rgba(248, 147, 43, 0) 58%,
+    transparent 100%
+  );
+  animation: scan-sweep-move 1.7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes scan-sweep-move {
+  0%   { transform: translateY(-110%); }
+  100% { transform: translateY(110%); }
+}
+
+/* corner AR fiducial markers blinking as if being "locked" */
+.fiducial {
+  animation: fiducial-blink 1.1s steps(2, jump-none) infinite;
+}
+@keyframes fiducial-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* component-recognition reticles */
+.reticle {
+  animation: reticle-pulse 1.5s ease-in-out infinite;
+}
+@keyframes reticle-pulse {
+  0%, 100% { transform: scale(0.82); opacity: 0.45; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.reticle-spin {
+  animation: reticle-spin 3.6s linear infinite;
+}
+@keyframes reticle-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* animated "ANALYZING..." dots */
+.dot1, .dot2, .dot3 {
+  animation: dot-blink 1.2s infinite;
+}
+.dot2 { animation-delay: 0.2s; }
+.dot3 { animation-delay: 0.4s; }
+@keyframes dot-blink {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 1; }
+}
+
+/* ----- shared transitions ----- */
+.instr-fade {
+  animation: instr-fade 520ms ease-out;
+}
+@keyframes instr-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}

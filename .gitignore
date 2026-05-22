@@ -1,0 +1,18 @@
+# python
+__pycache__/
+*.pyc
+venv/
+.venv/
+backend/.env
+
+# node
+node_modules/
+frontend/.env
+dist/
+.vite/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
