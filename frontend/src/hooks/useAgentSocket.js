@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useMockAgentSocket } from './useMockAgentSocket';
 
 // Single env-var swap to point at Cloud Run - see frontend/.env.example.
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/agent';
 const CIRCUIT_ID = 'temperature_alarm';
+
+// VITE_MOCK_SOCKET=true → play the scripted beat in-browser, no backend needed.
+// Athif: add this to frontend/.env to work without the backend running.
+export function useAgentSocket(enabled) {
+  const mockMode = import.meta.env.VITE_MOCK_SOCKET === 'true';
+  const mock = useMockAgentSocket(mockMode && enabled);
+  const real = useRealAgentSocket(!mockMode && enabled);
+  return mockMode ? mock : real;
+}
+
+// The original implementation is renamed to useRealAgentSocket below.
+// Nothing else in the codebase needs to change.
 
 // If the backend never answers a frame, drop the scan overlay anyway.
 const SCAN_TIMEOUT_MS = 12000;
@@ -13,7 +26,7 @@ const SCAN_TIMEOUT_MS = 12000;
  *  - sendFrame(imageB64): uploads a frame_eval for the current step
  *  - downstream payloads: drive instruction state, append log, auto-play audio
  */
-export function useAgentSocket(enabled) {
+function useRealAgentSocket(enabled) {
   const [connected, setConnected] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [status, setStatus] = useState('idle');
