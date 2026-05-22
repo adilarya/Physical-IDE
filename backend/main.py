@@ -74,26 +74,6 @@ async def ws_agent(ws: WebSocket):
             # --- receive: WebSocketDisconnect propagates to the outer handler -
             raw = await ws.receive_text()
 
-<<<<<<< Updated upstream
-            if event == "start_session":
-                circuit_id = msg.get("circuit_id", "servo_control")
-                if MOCK_MODE:
-                    session = AgentSession(circuit_id)
-                else:
-                    session = LiveAssemblySession(circuit_id)
-                await ws.send_json(await session.start())
-                print(f"[main] session started: {circuit_id} via {'mock' if MOCK_MODE else 'Gemini Live'}")
-
-            elif event == "frame_eval":
-                if session is None:
-                    # tolerate a missing start_session so the UI never deadlocks
-                    session = AgentSession(msg.get("circuit_id", "servo_control"))
-                payload = await session.handle_frame(
-                    msg["image_b64"], int(msg["current_step"]))
-                await ws.send_json(payload)
-                print(f"[main] frame_eval step={msg.get('current_step')} "
-                      f"-> {payload['status']} (next={payload['current_step']})")
-=======
             # --- parse: a malformed message must NOT kill the connection ------
             try:
                 msg = json.loads(raw)
@@ -106,21 +86,26 @@ async def ws_agent(ws: WebSocket):
             # --- dispatch: any handler error degrades to an error payload -----
             try:
                 event = msg.get("event")
->>>>>>> Stashed changes
 
                 if event == "start_session":
+                    circuit_id = msg.get("circuit_id", "servo_control")
                     constraints = msg.get("user_constraints", [])
-                    session = AgentSession(
-                        msg.get("circuit_id", "temperature_alarm"), constraints)
+                    if MOCK_MODE:
+                        session = AgentSession(circuit_id, constraints)
+                    else:
+                        session = LiveAssemblySession(circuit_id)
                     await ws.send_json(await session.start())
-                    print(f"[main] session started: {session.circuit_id} "
-                          f"constraints={constraints}")
+                    mode = "mock" if MOCK_MODE else "Gemini Live"
+                    print(f"[main] session started: {circuit_id} via {mode} constraints={constraints}")
 
                 elif event == "frame_eval":
                     if session is None:
                         # tolerate a missing start_session so the UI never deadlocks
-                        session = AgentSession(
-                            msg.get("circuit_id", "temperature_alarm"))
+                        if MOCK_MODE:
+                            session = AgentSession(msg.get("circuit_id", "servo_control"))
+                        else:
+                            session = LiveAssemblySession(msg.get("circuit_id", "servo_control"))
+                            await session.start()
                     payload = await session.handle_frame(
                         msg["image_b64"], int(msg["current_step"]))
                     await ws.send_json(payload)
