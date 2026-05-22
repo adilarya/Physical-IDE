@@ -17,6 +17,56 @@ The same architecture that guides a student also audits a factory worker:
 *   **Assembly Compliance:** In aerospace/robotics, a wire placed in the wrong pin (e.g., 0.1mm deviation) causes total failure. PreFlight uses fiducial-anchored coordinate grids to perform sub-millimeter visual auditing.
 *   **Audit Trail:** The Antigravity graph logs every physical assembly step and verification result to the cloud, creating a mathematically verified audit trail of assembly—a requirement for FAA/ISO manufacturing compliance.
 
+## 5. Team Roles & Responsibilities
+
+---
+
+### Athif — Frontend & Real-Time UX
+
+**Focus:** Everything the user sees and interacts with in real time.
+
+**Responsibilities:**
+- Build the React UI: webcam feed display, live overlay rendering, step-by-step instruction panel
+- Integrate MediaPipe on the client for real-time hand and component detection
+- Implement the WebSocket client: capture and stream frames to the backend, receive and render audio + image payloads
+- Build the "Physical IDE" HUD — visual error highlighting (wrong pin, wrong component), constraint warnings, and assembly progress indicators
+- Handle UI state for the assembly flow: idle → active → verified → error states
+- Design and implement the instruction display (Lego-style guided steps)
+- Ensure the UI is demo-ready: clean, responsive, and visually compelling for judges/stakeholders
+
+---
+
+### Adil — Backend & Agent Orchestration
+
+**Focus:** The server, real-time data pipeline, and the agent logic that ties everything together.
+
+**Responsibilities:**
+- Build and maintain the FastAPI server with WebSocket support for handling live frame streams
+- Design and implement the Antigravity 2.0 graph: state machine that tracks where the user is in the assembly process
+- Route requests between Gemini 3.5 Live (spatial verification) and Gemini 3.1 Pro (instruction generation) based on assembly state
+- Implement constraint routing logic — detect missing or substituted components and dynamically recalculate the schematic to keep assembly moving
+- Define and own the WebSocket contract (payload schema) between the frontend and backend
+- Define the API interface for Vertex AI calls so the vision/AI engineer can plug in cleanly
+- Deploy and manage the backend on Cloud Run
+- Handle error states, retries, and session management across WebSocket connections
+
+---
+
+### Eshwar — Vision AI & Data / Compliance
+
+**Focus:** The AI models, spatial accuracy, and the audit/compliance layer.
+
+**Responsibilities:**
+- Prompt engineer and tune both Vertex AI models: Gemini 3.5 Live for spatial/pin-level verification and Gemini 3.1 Pro for instruction generation
+- Set up fiducial markers and build the coordinate grid system for sub-millimeter component auditing
+- Build and maintain the digital twin — the ground truth schematic the agent compares physical assembly against
+- Implement the verification pipeline: compare the live webcam frame against the digital twin and return pass/fail with spatial annotations
+- Build the audit trail logging system: every assembly step, verification result, and deviation gets logged to the cloud (structured for FAA/ISO compliance)
+- Own model accuracy: iterate on prompts and detection logic to minimize false positives/negatives
+- Expose a clean interface for the backend to call into the vision pipeline
+
+---
+
 ## 4. Architecture & Data Flow
 **Pattern:** Edge-Triggered Webcam -> WebSocket -> FastAPI/Antigravity Backend -> Vertex AI -> Interleaved UI Payload.
 
