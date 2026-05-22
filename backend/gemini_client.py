@@ -36,6 +36,8 @@ MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
 GEMINI_STRATEGY = os.getenv("GEMINI_STRATEGY", "parallel")   # single_pass | parallel
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
+DEFAULT_MODEL = "gemini-3.5-flash"
+
 _VALID_VERDICTS = {
     "success_advance", "error_short_circuit",
     "error_occluded", "error_wrong_placement",
@@ -338,7 +340,7 @@ async def _real_evaluate_frame(image_b64, current_step, expected_state):
         "Assess the image now and return the strict JSON verdict."
     )
     resp = await client.aio.models.generate_content(
-        model=os.getenv("GEMINI_VISION_MODEL", "gemini-2.5-flash"),
+        model=os.getenv("GEMINI_VISION_MODEL", DEFAULT_MODEL),
         contents=[
             types.Part.from_bytes(data=_decode_image(image_b64), mime_type="image/jpeg"),
             types.Part.from_text(text=prompt),
@@ -384,7 +386,7 @@ async def _real_generate_single_pass(step_index, context):
         f"{_IMAGE_STYLE}, and a one-sentence text caption."
     )
     resp = await client.aio.models.generate_content(
-        model=os.getenv("GEMINI_MULTIMODAL_MODEL", "gemini-2.5-flash"),
+        model=os.getenv("GEMINI_MULTIMODAL_MODEL", DEFAULT_MODEL),
         contents=[prompt],
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE", "AUDIO"],  # TODO unverified surface
@@ -436,7 +438,7 @@ async def _gen_text(instr):
     from google.genai import types
     client = _client()
     resp = await client.aio.models.generate_content(
-        model=os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash"),
+        model=os.getenv("GEMINI_TEXT_MODEL", DEFAULT_MODEL),
         contents=[
             "Write one short, friendly spoken instruction for this hardware "
             f"assembly step. One or two sentences, no markdown: {instr}"
