@@ -8,8 +8,7 @@
 ### AI & Models
 | Technology | Role |
 |---|---|
-| **Gemini Live API** (`gemini-3.1-flash-live-preview`) | Core vision engine. Receives JPEG frames from the webcam, evaluates physical assembly state in real time, and returns a spoken verdict + audio response. The model is audio-native — it sees the board and speaks directly to the user. |
-| **Gemini 3.5 Flash** (`gemini-3.5-flash`) | Planner model. Generates step-by-step assembly instructions, correction messages, and interleaved text output. |
+| **Gemini Live API** (`gemini-3.1-flash-live-preview`) | The entire verification engine. One API call per frame: sees the board, judges safety and correctness, speaks the verdict and instruction aloud as native audio. Vision + verdict + voice in a single round-trip. |
 
 ### Infrastructure
 | Technology | Role |
