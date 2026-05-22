@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useWebcam } from './hooks/useWebcam';
 import { useHandTracker } from './hooks/useHandTracker';
 import { useAgentSocket } from './hooks/useAgentSocket';
@@ -12,11 +12,14 @@ export default function App() {
   // `started` gates the camera/socket/audio behind a real user gesture
   // (required for getUserMedia + AudioContext autoplay policies).
   const [started, setStarted] = useState(false);
+  const [videoWidth, setVideoWidth] = useState(380);
+  const dragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
 
   const { videoRef, error: webcamError, captureFrame } = useWebcam(started);
   const socket = useAgentSocket(started);
 
-  // socket changes every render; keep a ref so onHandClear stays stable.
   const socketRef = useRef(socket);
   socketRef.current = socket;
 
@@ -28,11 +31,40 @@ export default function App() {
 
   const { handsInFrame, trackerReady } = useHandTracker(videoRef, started, onHandClear);
 
-  // Demo-safety fallback if hand tracking is flaky on the venue hardware.
   const forceCapture = () => {
     if (!socket.connected || socket.scanning) return;
     socket.sendFrame(captureFrame());
   };
+
+  // Drag-to-resize the video panel
+  const onDragHandleMouseDown = useCallback((e) => {
+    dragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = videoWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [videoWidth]);
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!dragging.current) return;
+      const delta = e.clientX - dragStartX.current;
+      const next = Math.min(Math.max(dragStartWidth.current + delta, 220), 720);
+      setVideoWidth(next);
+    };
+    const onMouseUp = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   if (!started) {
     return <StartScreen onStart={() => setStarted(true)} />;
@@ -47,9 +79,9 @@ export default function App() {
         status={socket.status}
       />
 
-      <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
+      <div className="flex-1 flex gap-0 min-h-0">
         {/* LEFT - live webcam feed + Deep-Scan overlay */}
-        <section className="col-span-4 flex flex-col gap-3 min-h-0">
+        <section className="flex flex-col gap-3 min-h-0 shrink-0" style={{ width: videoWidth }}>
           <span className="font-mono text-xs tracking-widest text-slate-400">
             LIVE FEED
           </span>
@@ -95,8 +127,16 @@ export default function App() {
           </p>
         </section>
 
+        {/* DRAG HANDLE */}
+        <div
+          onMouseDown={onDragHandleMouseDown}
+          className="w-2 mx-2 shrink-0 flex items-center justify-center cursor-col-resize group"
+        >
+          <div className="w-px h-full bg-slate-700 group-hover:bg-orange-500 transition-colors" />
+        </div>
+
         {/* CENTER - current instruction */}
-        <section className="col-span-5 rounded-xl border border-slate-800 bg-slate-900/40 p-4 min-h-0">
+        <section className="flex-1 rounded-xl border border-slate-800 bg-slate-900/40 p-4 min-h-0 min-w-0">
           <InstructionCard
             image={socket.instructionImage}
             text={socket.instructionText}
@@ -107,8 +147,15 @@ export default function App() {
           />
         </section>
 
+        {/* DRAG HANDLE */}
+        <div
+          className="w-2 mx-2 shrink-0 flex items-center justify-center cursor-col-resize group"
+        >
+          <div className="w-px h-full bg-slate-700" />
+        </div>
+
         {/* RIGHT - agent log */}
-        <section className="col-span-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 min-h-0">
+        <section className="w-72 shrink-0 rounded-xl border border-slate-800 bg-slate-900/40 p-4 min-h-0">
           <AgentLog log={socket.log} />
         </section>
       </div>
