@@ -42,27 +42,34 @@ _VALID_VERDICTS = {
 }
 
 _SYSTEM_INSTRUCTION = """
-You are a real-time hardware assembly safety checker watching a live webcam feed of an Arduino circuit being built step by step.
+You are a real-time hardware assembly safety checker for an Arduino circuit build. You watch a webcam feed and guide the person assembling the circuit.
 
-Your two jobs:
-1. Is anything DANGEROUS? (reversed polarity, short circuit, power and ground crossed)
-2. Does the assembly MATCH what is expected for the current step?
+When shown an image, speak your response in two parts:
 
-After each frame you receive, respond with ONLY a valid JSON object — no markdown, no explanation, no code fences:
-{"verdict": "...", "instruction": "...", "agent_log": "..."}
+PART 1 — Start with exactly one verdict word (nothing before it):
+  PASS    — assembly matches the expected step and is safe to proceed
+  WRONG   — something is connected in the wrong place or out of order
+  DANGER  — dangerous connection visible (reversed polarity, VCC shorted to GND, short circuit)
+  UNCLEAR — cannot assess the board (hand in frame, too blurry, too dark, not confident)
 
-verdict must be exactly one of:
-  success_advance       — assembly looks correct for this step, safe to proceed
-  error_short_circuit   — dangerous connection visible (reversed polarity, VCC shorted to GND)
-  error_wrong_placement — something is connected in the wrong place or out of order
-  error_occluded        — cannot assess the board (hand in frame, too blurry, too dark)
+PART 2 — Then speak one or two natural, direct sentences to the person telling them what to do next.
 
-instruction: one or two plain spoken sentences — what the user should do now
-agent_log: one short internal log line e.g. "[Watcher] step 2 verdict=success_advance"
+Examples:
+  "PASS. Great work, the power rail is connected. Now add a black wire from Arduino GND to the negative rail."
+  "WRONG. The ground wire is missing. Please connect a black wire from the GND pin to the negative rail on the breadboard."
+  "DANGER. Stop immediately. The servo power wires are reversed — red must go to the positive rail, not brown."
+  "UNCLEAR. I cannot see the board clearly. Please hold the circuit still and remove your hands from view."
 
-GROUNDING RULE: if you are not confident (below ~70%), return error_occluded.
-Never invent components you cannot clearly see.
+GROUNDING RULE: if you are not at least 70 percent confident about what you see, say UNCLEAR.
+Never describe components you cannot clearly see.
 """
+
+_VERDICT_MAP = {
+    "PASS": "success_advance",
+    "WRONG": "error_wrong_placement",
+    "DANGER": "error_short_circuit",
+    "UNCLEAR": "error_occluded",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -84,42 +91,54 @@ def _silent_wav(seconds: float = 0.5, rate: int = 8000) -> str:
     return base64.b64encode(header + data).decode()
 
 
+def _pcm_to_wav(pcm_bytes: bytes, rate: int = 24000, channels: int = 1, bits: int = 16) -> str:
+    """Wrap raw PCM from Gemini Live into a browser-playable WAV and base64-encode it."""
+    n = len(pcm_bytes)
+    header = b"RIFF" + struct.pack("<I", 36 + n) + b"WAVE"
+    header += b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, rate,
+                                    rate * channels * bits // 8,
+                                    channels * bits // 8, bits)
+    header += b"data" + struct.pack("<I", n)
+    return base64.b64encode(header + pcm_bytes).decode()
+
+
 _SILENT = _silent_wav()
 
 
 def _parse_response(text: str, current_step: int) -> dict | None:
-    """Extract a verdict JSON from the model's text response."""
-    # Strip markdown fences if present
-    text = re.sub(r"```[a-z]*\n?", "", text).strip()
+    """Parse the spoken verdict token + natural instruction from the transcription."""
+    text = text.strip()
+    if not text:
+        return None
 
-    # Try direct JSON parse
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        # Try to find a JSON object anywhere in the text
-        match = re.search(r"\{[^{}]+\}", text, re.DOTALL)
-        if not match:
-            return None
-        try:
-            data = json.loads(match.group())
-        except json.JSONDecodeError:
+    # Extract the first word as the verdict token
+    first_word = text.split()[0].rstrip(".,!").upper()
+    verdict = _VERDICT_MAP.get(first_word)
+
+    if verdict is None:
+        # Fallback: scan for any verdict token anywhere in the text
+        for token, v in _VERDICT_MAP.items():
+            if token in text.upper():
+                verdict = v
+                break
+        if verdict is None:
             return None
 
-    verdict = data.get("verdict", "error_occluded")
-    if verdict not in _VALID_VERDICTS:
-        verdict = "error_occluded"
+    # Instruction = everything after the first word
+    parts = text.split(None, 1)
+    instruction = parts[1].strip() if len(parts) > 1 else text
 
     return {
         "verdict": verdict,
-        "instruction": data.get("instruction", ""),
-        "agent_log": data.get("agent_log", f"[Live] step {current_step} verdict={verdict}"),
+        "instruction": instruction,
+        "agent_log": f"[Watcher] step {current_step} verdict={verdict}",
     }
 
 
-def _build_payload(status, instruction, agent_log, current_step, citation=""):
+def _build_payload(status, instruction, agent_log, current_step, citation="", audio_b64=None):
     return {
         "status": status,
-        "audio_b64": _SILENT,
+        "audio_b64": audio_b64 or _SILENT,
         "image_b64": "",
         "text": instruction,
         "agent_log": agent_log,
@@ -193,6 +212,8 @@ class LiveAssemblySession:
 
         verdict = result["verdict"]
 
+        audio = result.get("audio_b64")
+
         if verdict == "success_advance":
             next_step = current_step + 1
             if next_step > step_count(self.circuit_id):
@@ -202,6 +223,7 @@ class LiveAssemblySession:
                     "Assembly complete. All steps verified — great work!",
                     "[Live] Build complete. All steps passed.",
                     next_step,
+                    audio_b64=audio,
                 )
             next_step_data = get_step(self.circuit_id, next_step)
             self.current_step = next_step
@@ -211,6 +233,7 @@ class LiveAssemblySession:
                 result["agent_log"],
                 next_step,
                 next_step_data.get("citation", ""),
+                audio_b64=audio,
             )
 
         return _build_payload(
@@ -219,6 +242,7 @@ class LiveAssemblySession:
             result["agent_log"],
             current_step,
             step.get("citation", ""),
+            audio_b64=audio,
         )
 
     async def close(self):
@@ -229,7 +253,7 @@ class LiveAssemblySession:
     # ------------------------------------------------------------------
 
     async def _evaluate(self, image_b64: str, step: dict, current_step: int) -> dict:
-        """Open a Gemini Live session, send one frame, collect the verdict."""
+        """Open a Gemini Live session, send one frame, collect verdict + audio."""
         config = types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             output_audio_transcription=types.AudioTranscriptionConfig(),
@@ -239,10 +263,12 @@ class LiveAssemblySession:
         context = (
             f"Step {current_step}: {step.get('success_criteria', '')}. "
             f"Danger signals: {', '.join(step.get('danger_signals', [])) or 'none'}. "
-            "Evaluate this image and give your verdict."
+            "Evaluate this image and speak your verdict."
         )
 
-        accumulated = ""
+        transcription = ""
+        pcm_chunks: list[bytes] = []
+
         async with self._client.aio.live.connect(model=LIVE_MODEL, config=config) as session:
             await session.send_client_content(
                 turns=types.Content(
@@ -261,21 +287,29 @@ class LiveAssemblySession:
 
             async for response in session.receive():
                 if response.server_content:
+                    # Collect transcription for verdict parsing
                     if response.server_content.output_transcription:
-                        accumulated += response.server_content.output_transcription.text or ""
+                        transcription += response.server_content.output_transcription.text or ""
+                    # Collect raw PCM audio chunks to play in the browser
                     if response.server_content.model_turn:
                         for part in response.server_content.model_turn.parts:
-                            if part.text:
-                                accumulated += part.text
+                            if part.inline_data and part.inline_data.mime_type.startswith("audio/pcm"):
+                                pcm_chunks.append(part.inline_data.data)
                     if response.server_content.turn_complete:
                         break
 
-        parsed = _parse_response(accumulated, current_step)
+        parsed = _parse_response(transcription, current_step)
         if parsed is None:
             return {
                 "verdict": "error_occluded",
                 "instruction": "Could not read the board clearly. Please hold still and try again.",
-                "agent_log": f"[Live] Could not parse response: {accumulated[:80]!r}",
+                "agent_log": f"[Live] Could not parse response: {transcription[:80]!r}",
+                "audio_b64": None,
             }
-        print(f"[live_agent] step={current_step} verdict={parsed['verdict']} raw={accumulated[:60]!r}")
-        return parsed
+
+        # Wrap all PCM chunks into a single WAV for the browser
+        audio_b64 = _pcm_to_wav(b"".join(pcm_chunks)) if pcm_chunks else None
+
+        print(f"[live_agent] step={current_step} verdict={parsed['verdict']} "
+              f"audio={len(pcm_chunks)} chunks transcription={transcription[:60]!r}")
+        return {**parsed, "audio_b64": audio_b64}
