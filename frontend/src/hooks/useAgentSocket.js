@@ -77,7 +77,7 @@ function useRealAgentSocket(enabled) {
       // Wire up analyser for voice circle animation
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.6;
+      analyser.smoothingTimeConstant = 0.85;
       src.connect(analyser);
       analyser.connect(ctx.destination);
       analyserRef.current = analyser;

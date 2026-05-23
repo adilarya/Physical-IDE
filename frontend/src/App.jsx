@@ -14,14 +14,17 @@ function VoiceCircle({ isSpeaking, analyserRef }) {
   const [scale, setScale] = useState(1);
   const rafRef = useRef(null);
   const dataRef = useRef(null);
+  const smoothedRef = useRef(0); // exponential moving average
 
   useEffect(() => {
     if (!isSpeaking || !analyserRef.current) {
+      smoothedRef.current = 0;
       setScale(1);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
     dataRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
+    const ALPHA = 0.15; // smoothing factor — lower = smoother but slower
     const tick = () => {
       if (!analyserRef.current || !dataRef.current) return;
       analyserRef.current.getByteTimeDomainData(dataRef.current);
@@ -31,47 +34,51 @@ function VoiceCircle({ isSpeaking, analyserRef }) {
         sum += v * v;
       }
       const rms = Math.sqrt(sum / dataRef.current.length);
-      setScale(1 + rms * 5);
+      // Exponential moving average smooths out rapid spikes
+      smoothedRef.current = ALPHA * rms + (1 - ALPHA) * smoothedRef.current;
+      setScale(1 + smoothedRef.current * 3.5);
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [isSpeaking, analyserRef]);
 
+  const TRANSITION = 'transform 0.12s ease-out';
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80, position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, position: 'relative', overflow: 'hidden', width: 64 }}>
       {/* Outer ring */}
       <div style={{
         position: 'absolute',
-        width: 56,
-        height: 56,
+        width: 52,
+        height: 52,
         borderRadius: '50%',
-        border: '1px solid rgba(249,115,22,0.15)',
-        transform: `scale(${1 + (scale - 1) * 1.6})`,
-        transition: 'transform 0.04s ease-out',
-        opacity: isSpeaking ? 1 : 0.2,
+        border: '1px solid rgba(249,115,22,0.12)',
+        transform: `scale(${1 + (scale - 1) * 1.5})`,
+        transition: TRANSITION,
+        opacity: isSpeaking ? 1 : 0.15,
       }} />
       {/* Middle ring */}
       <div style={{
         position: 'absolute',
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         borderRadius: '50%',
-        border: '1px solid rgba(249,115,22,0.3)',
+        border: '1px solid rgba(249,115,22,0.25)',
         transform: `scale(${1 + (scale - 1) * 1.2})`,
-        transition: 'transform 0.04s ease-out',
-        opacity: isSpeaking ? 1 : 0.2,
+        transition: TRANSITION,
+        opacity: isSpeaking ? 1 : 0.15,
       }} />
-      {/* Core circle */}
+      {/* Core */}
       <div style={{
-        width: 26,
-        height: 26,
+        width: 20,
+        height: 20,
         borderRadius: '50%',
-        background: isSpeaking ? `rgba(249,115,22,${0.15 + (scale - 1) * 0.3})` : 'rgba(249,115,22,0.05)',
-        border: `1px solid rgba(249,115,22,${isSpeaking ? 0.8 : 0.2})`,
+        background: isSpeaking ? `rgba(249,115,22,${0.2 + (scale - 1) * 0.25})` : 'rgba(249,115,22,0.05)',
+        border: `1px solid rgba(249,115,22,${isSpeaking ? 0.7 : 0.15})`,
         transform: `scale(${scale})`,
-        transition: 'transform 0.04s ease-out, background 0.1s ease',
-        boxShadow: isSpeaking ? `0 0 ${12 + (scale - 1) * 20}px rgba(249,115,22,0.4)` : 'none',
+        transition: TRANSITION,
+        boxShadow: isSpeaking ? `0 0 ${8 + (scale - 1) * 16}px rgba(249,115,22,0.35)` : 'none',
       }} />
     </div>
   );
@@ -394,9 +401,9 @@ export default function App() {
           </div>
 
           {/* Voice circle */}
-          <div style={{ flexShrink: 0, borderTop: '1px solid #0f1f30', background: '#07101a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '0 14px' }}>
+          <div style={{ flexShrink: 0, borderTop: '1px solid #0f1f30', background: '#07101a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '4px 14px', height: 72 }}>
             <VoiceCircle isSpeaking={socket.isSpeaking} analyserRef={socket.analyserRef} />
-            <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, color: socket.isSpeaking ? '#f97316' : '#1e3248', letterSpacing: '0.15em', transition: 'color 0.3s' }}>
+            <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, color: socket.isSpeaking ? '#f97316' : '#1e3248', letterSpacing: '0.15em', transition: 'color 0.4s' }}>
               {socket.isSpeaking ? 'AGENT SPEAKING' : 'STANDBY'}
             </div>
           </div>
