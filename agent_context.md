@@ -1,4 +1,4 @@
-# SYSTEM CONTEXT & ARCHITECTURE: PROJECT PREFLIGHT (The Physical IDE)
+# SYSTEM CONTEXT & ARCHITECTURE: The Physical IDE
 
 ## 1. Project Overview
 **Project Name:** Project  The Physical IDE

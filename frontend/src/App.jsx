@@ -21,8 +21,8 @@ function Logo() {
         <line x1="18" y1="16.5" x2="22" y2="16.5" stroke="#f97316" strokeWidth="0.8" strokeOpacity="0.5"/>
       </svg>
       <div>
-        <div style={{ fontFamily: "'Chakra Petch'", fontSize: 13, fontWeight: 700, letterSpacing: '0.3em', color: '#e2eeff', lineHeight: 1 }}>PREFLIGHT</div>
-        <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, letterSpacing: '0.25em', color: '#2d4a6a', marginTop: 2 }}>PHYSICAL IDE</div>
+        <div style={{ fontFamily: "'Chakra Petch'", fontSize: 11, fontWeight: 700, letterSpacing: '0.22em', color: '#e2eeff', lineHeight: 1 }}>THE PHYSICAL IDE</div>
+        <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, letterSpacing: '0.25em', color: '#2d4a6a', marginTop: 2 }}>ASSEMBLY VERIFIER</div>
       </div>
     </div>
   );
@@ -149,7 +149,7 @@ export default function App() {
           <div className="boot-in-2" style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#1e3248', letterSpacing: '0.25em', marginBottom: 12 }}>GOOGLE I/O 2026</div>
             <div style={{ fontFamily: "'Chakra Petch'", fontSize: 11, color: '#2d4a6a', letterSpacing: '0.2em' }}>
-              GRANTS CAMERA · GEMINI LIVE · AUDIO
+              THE PHYSICAL IDE · GEMINI LIVE · AUDIO
             </div>
           </div>
 
