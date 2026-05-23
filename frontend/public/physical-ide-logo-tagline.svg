@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" role="img">
+<title>Physical IDE — A compiler for hardware</title>
+<desc>Horizontal lockup with the positioning tagline below the wordmark.</desc>
+<g transform="translate(10, 12)">
+<path d="M 24 4 L 4 4 L 4 76 L 24 76" stroke="#FF5722" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<path d="M 56 4 L 76 4 L 76 76 L 56 76" stroke="#FF5722" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<circle cx="40" cy="40" r="7.25" fill="none" stroke="#FF5722" stroke-width="7.5"/>
+</g>
+<text x="120" y="60" font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="42" font-weight="500" fill="#0F0F0F" letter-spacing="-1.3">physical<tspan fill="#FF5722">.</tspan>ide</text>
+<text x="120" y="92" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#666666" letter-spacing="2.5">A COMPILER FOR HARDWARE</text>
+</svg>

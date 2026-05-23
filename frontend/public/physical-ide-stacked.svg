@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" role="img">
+<title>Physical IDE (stacked)</title>
+<desc>Stacked lockup with bracket-and-pin mark above the wordmark.</desc>
+<g transform="translate(100, 20)">
+<path d="M 24 4 L 4 4 L 4 76 L 24 76" stroke="#FF5722" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<path d="M 56 4 L 76 4 L 76 76 L 56 76" stroke="#FF5722" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<circle cx="40" cy="40" r="7.25" fill="none" stroke="#FF5722" stroke-width="7.5"/>
+</g>
+<text x="140" y="148" font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="32" font-weight="500" fill="#0F0F0F" text-anchor="middle" letter-spacing="-1">physical<tspan fill="#FF5722">.</tspan>ide</text>
+</svg>
