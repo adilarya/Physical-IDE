@@ -134,5 +134,7 @@ export function useMockAgentSocket(enabled) {
     sendFrame,
     sendTutorial: () => {},
     tutorialEvent: null,
+    isSpeaking: false,
+    analyserRef: { current: null },
   };
 }

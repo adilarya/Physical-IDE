@@ -9,6 +9,121 @@ import ChatPanel from './components/ChatPanel';
 
 const TOTAL_STEPS = 3;
 
+/* ─── Voice Circle ──────────────────────────────────────── */
+function VoiceCircle({ isSpeaking, analyserRef }) {
+  const [scale, setScale] = useState(1);
+  const rafRef = useRef(null);
+  const dataRef = useRef(null);
+
+  useEffect(() => {
+    if (!isSpeaking || !analyserRef.current) {
+      setScale(1);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    dataRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
+    const tick = () => {
+      if (!analyserRef.current || !dataRef.current) return;
+      analyserRef.current.getByteTimeDomainData(dataRef.current);
+      let sum = 0;
+      for (let i = 0; i < dataRef.current.length; i++) {
+        const v = (dataRef.current[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / dataRef.current.length);
+      setScale(1 + rms * 5);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [isSpeaking, analyserRef]);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 80, position: 'relative' }}>
+      {/* Outer ring */}
+      <div style={{
+        position: 'absolute',
+        width: 56,
+        height: 56,
+        borderRadius: '50%',
+        border: '1px solid rgba(249,115,22,0.15)',
+        transform: `scale(${1 + (scale - 1) * 1.6})`,
+        transition: 'transform 0.04s ease-out',
+        opacity: isSpeaking ? 1 : 0.2,
+      }} />
+      {/* Middle ring */}
+      <div style={{
+        position: 'absolute',
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        border: '1px solid rgba(249,115,22,0.3)',
+        transform: `scale(${1 + (scale - 1) * 1.2})`,
+        transition: 'transform 0.04s ease-out',
+        opacity: isSpeaking ? 1 : 0.2,
+      }} />
+      {/* Core circle */}
+      <div style={{
+        width: 26,
+        height: 26,
+        borderRadius: '50%',
+        background: isSpeaking ? `rgba(249,115,22,${0.15 + (scale - 1) * 0.3})` : 'rgba(249,115,22,0.05)',
+        border: `1px solid rgba(249,115,22,${isSpeaking ? 0.8 : 0.2})`,
+        transform: `scale(${scale})`,
+        transition: 'transform 0.04s ease-out, background 0.1s ease',
+        boxShadow: isSpeaking ? `0 0 ${12 + (scale - 1) * 20}px rgba(249,115,22,0.4)` : 'none',
+      }} />
+    </div>
+  );
+}
+
+/* ─── Completion Overlay ────────────────────────────────── */
+function CompletionOverlay({ text, onDismiss }) {
+  return (
+    <div
+      onClick={onDismiss}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(6,12,22,0.96)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        gap: 32, cursor: 'pointer',
+        animation: 'scan-fade-in 0.4s ease-out',
+      }}
+    >
+      {/* Sweep line */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'linear-gradient(180deg, transparent 0%, rgba(16,232,160,0.04) 50%, transparent 100%)',
+        animation: 'scan-sweep-move 3s ease-in-out infinite',
+      }} />
+
+      {/* Check mark */}
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" style={{ animation: 'boot-in 0.5s ease-out' }}>
+        <circle cx="40" cy="40" r="38" stroke="#10e8a0" strokeWidth="1.5" strokeOpacity="0.4"/>
+        <circle cx="40" cy="40" r="30" stroke="#10e8a0" strokeWidth="1" strokeOpacity="0.2"/>
+        <polyline points="24,42 36,54 58,28" stroke="#10e8a0" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+
+      <div style={{ textAlign: 'center', animation: 'boot-in-2 0.5s ease-out' }}>
+        <div style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#10e8a0', letterSpacing: '0.35em', marginBottom: 12 }}>ALL STEPS VERIFIED</div>
+        <div style={{ fontFamily: "'Chakra Petch'", fontSize: 22, fontWeight: 700, color: '#e2eeff', letterSpacing: '0.05em', maxWidth: 480, lineHeight: 1.4 }}>
+          BUILD COMPLETE
+        </div>
+        {text && (
+          <div style={{ fontFamily: "'Chakra Petch'", fontSize: 13, color: '#4d6a88', marginTop: 16, maxWidth: 440, lineHeight: 1.6 }}>
+            {text}
+          </div>
+        )}
+      </div>
+
+      <div style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#1e3248', letterSpacing: '0.15em', animation: 'boot-in-3 0.6s ease-out' }}>
+        CLICK ANYWHERE TO CONTINUE
+      </div>
+    </div>
+  );
+}
+
 /* ─── Logo ─────────────────────────────────────────────── */
 function Logo() {
   return (
@@ -43,6 +158,7 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [videoWidth, setVideoWidth] = useState(340);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
   const [tutorialState, setTutorialState] = useState({
     loading: false, thinking: '', goal: '', steps: [],
     totalSteps: 0, complete: false, error: '',
@@ -74,6 +190,15 @@ export default function App() {
     setTutorialState({ loading: true, thinking: '', goal, steps: [], totalSteps: 0, complete: false, error: '' });
     socket.sendTutorial(goal);
   }, [socket]);
+
+  // Show completion overlay when build finishes
+  const prevStep = useRef(socket.currentStep);
+  useEffect(() => {
+    if (socket.currentStep > TOTAL_STEPS && prevStep.current <= TOTAL_STEPS) {
+      setShowComplete(true);
+    }
+    prevStep.current = socket.currentStep;
+  }, [socket.currentStep]);
 
   useEffect(() => {
     const ev = socket.tutorialEvent;
@@ -185,6 +310,13 @@ export default function App() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#060c16' }}>
       <ChatPanel isOpen={chatOpen} onClose={() => setChatOpen(false)} sendMessage={sendTutorialGoal} tutorialState={tutorialState} />
 
+      {showComplete && (
+        <CompletionOverlay
+          text={socket.instructionText}
+          onDismiss={() => setShowComplete(false)}
+        />
+      )}
+
       {/* ── Header ── */}
       <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #0f1f30', gap: 20 }}>
         {/* Orange left tick */}
@@ -259,6 +391,14 @@ export default function App() {
                 {webcamError}
               </div>
             )}
+          </div>
+
+          {/* Voice circle */}
+          <div style={{ flexShrink: 0, borderTop: '1px solid #0f1f30', background: '#07101a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '0 14px' }}>
+            <VoiceCircle isSpeaking={socket.isSpeaking} analyserRef={socket.analyserRef} />
+            <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, color: socket.isSpeaking ? '#f97316' : '#1e3248', letterSpacing: '0.15em', transition: 'color 0.3s' }}>
+              {socket.isSpeaking ? 'AGENT SPEAKING' : 'STANDBY'}
+            </div>
           </div>
 
           {/* Capture controls */}

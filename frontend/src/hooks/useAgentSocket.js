@@ -36,11 +36,13 @@ function useRealAgentSocket(enabled) {
   const [citation, setCitation] = useState('');
   const [log, setLog] = useState([]);
   const [tutorialEvent, setTutorialEvent] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const wsRef = useRef(null);
   const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
   const scanTimerRef = useRef(null);
-  const stepRef = useRef(1); // mirror so sendFrame always reads the latest step
+  const stepRef = useRef(1);
 
   useEffect(() => {
     stepRef.current = currentStep;
@@ -71,7 +73,20 @@ function useRealAgentSocket(enabled) {
       const buffer = await ctx.decodeAudioData(bytes.buffer);
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      src.connect(ctx.destination);
+
+      // Wire up analyser for voice circle animation
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.6;
+      src.connect(analyser);
+      analyser.connect(ctx.destination);
+      analyserRef.current = analyser;
+      setIsSpeaking(true);
+
+      src.onended = () => {
+        setIsSpeaking(false);
+        analyserRef.current = null;
+      };
       src.start();
     } catch (e) {
       console.warn('[useAgentSocket] audio playback failed', e);
@@ -210,5 +225,7 @@ function useRealAgentSocket(enabled) {
     sendFrame,
     sendTutorial,
     tutorialEvent,
+    isSpeaking,
+    analyserRef,
   };
 }
