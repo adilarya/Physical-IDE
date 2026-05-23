@@ -12,6 +12,7 @@ Public interface matches AgentSession so main.py needs no changes:
     await session.handle_frame(...) -> verdict payload
     await session.close()           -> cleanup
 """
+from __future__ import annotations
 import asyncio
 import base64
 import json
