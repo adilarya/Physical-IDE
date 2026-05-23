@@ -16,8 +16,8 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(249,115,22,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(249,115,22,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(255,87,34,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,87,34,0.025) 1px, transparent 1px);
   background-size: 48px 48px;
   pointer-events: none;
   z-index: 0;
@@ -62,7 +62,7 @@ body::after {
 .panel-num {
   font-family: 'DM Mono', monospace;
   font-size: 10px;
-  color: #f97316;
+  color: #FF5722;
   letter-spacing: 0.15em;
   opacity: 0.7;
 }
@@ -89,7 +89,7 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, #f97316 0%, rgba(249,115,22,0.1) 60%, transparent 100%);
+  background: linear-gradient(90deg, #FF5722 0%, rgba(255,87,34,0.1) 60%, transparent 100%);
 }
 
 /* ─── DEEP-SCAN OVERLAY ──────────────────────────────────── */
@@ -103,8 +103,8 @@ body::after {
 
 .scan-grid {
   background-image:
-    linear-gradient(rgba(249,115,22,0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(249,115,22,0.15) 1px, transparent 1px);
+    linear-gradient(rgba(255,87,34,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,87,34,0.15) 1px, transparent 1px);
   background-size: 32px 32px;
   animation: grid-pan 2.4s linear infinite;
 }
@@ -117,9 +117,9 @@ body::after {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(249,115,22,0) 42%,
-    rgba(249,115,22,0.5) 50%,
-    rgba(249,115,22,0) 58%,
+    rgba(255,87,34,0) 42%,
+    rgba(255,87,34,0.5) 50%,
+    rgba(255,87,34,0) 58%,
     transparent 100%
   );
   animation: scan-sweep-move 1.7s cubic-bezier(0.4,0,0.6,1) infinite;

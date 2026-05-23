@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img">
+<title>Physical IDE app icon</title>
+<desc>Square app icon with a white inverted bracket-and-pin symbol on an orange background.</desc>
+<rect x="0" y="0" width="128" height="128" rx="28" fill="#FF5722"/>
+<g transform="translate(24, 24)">
+<path d="M 24 4 L 4 4 L 4 76 L 24 76" stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<path d="M 56 4 L 76 4 L 76 76 L 56 76" stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+<circle cx="40" cy="40" r="7.25" fill="none" stroke="#FFFFFF" stroke-width="7.5"/>
+</g>
+</svg>

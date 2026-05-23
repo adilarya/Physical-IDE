@@ -53,7 +53,7 @@ function VoiceCircle({ isSpeaking, analyserRef }) {
         width: 52,
         height: 52,
         borderRadius: '50%',
-        border: '1px solid rgba(249,115,22,0.12)',
+        border: '1px solid rgba(255,87,34,0.12)',
         transform: `scale(${1 + (scale - 1) * 1.5})`,
         transition: TRANSITION,
         opacity: isSpeaking ? 1 : 0.15,
@@ -64,7 +64,7 @@ function VoiceCircle({ isSpeaking, analyserRef }) {
         width: 36,
         height: 36,
         borderRadius: '50%',
-        border: '1px solid rgba(249,115,22,0.25)',
+        border: '1px solid rgba(255,87,34,0.25)',
         transform: `scale(${1 + (scale - 1) * 1.2})`,
         transition: TRANSITION,
         opacity: isSpeaking ? 1 : 0.15,
@@ -74,11 +74,11 @@ function VoiceCircle({ isSpeaking, analyserRef }) {
         width: 20,
         height: 20,
         borderRadius: '50%',
-        background: isSpeaking ? `rgba(249,115,22,${0.2 + (scale - 1) * 0.25})` : 'rgba(249,115,22,0.05)',
-        border: `1px solid rgba(249,115,22,${isSpeaking ? 0.7 : 0.15})`,
+        background: isSpeaking ? `rgba(255,87,34,${0.2 + (scale - 1) * 0.25})` : 'rgba(255,87,34,0.05)',
+        border: `1px solid rgba(255,87,34,${isSpeaking ? 0.7 : 0.15})`,
         transform: `scale(${scale})`,
         transition: TRANSITION,
-        boxShadow: isSpeaking ? `0 0 ${8 + (scale - 1) * 16}px rgba(249,115,22,0.35)` : 'none',
+        boxShadow: isSpeaking ? `0 0 ${8 + (scale - 1) * 16}px rgba(255,87,34,0.35)` : 'none',
       }} />
     </div>
   );
@@ -134,19 +134,11 @@ function CompletionOverlay({ text, onDismiss }) {
 /* ─── Logo ─────────────────────────────────────────────── */
 function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect x="0.6" y="0.6" width="20.8" height="20.8" stroke="#f97316" strokeWidth="1.2" strokeOpacity="0.35"/>
-        <rect x="6" y="6" width="10" height="10" transform="rotate(45 11 11)" fill="none" stroke="#f97316" strokeWidth="1.2"/>
-        <circle cx="11" cy="11" r="2" fill="#f97316" className="logo-dot"/>
-        <line x1="0" y1="5.5" x2="4" y2="5.5" stroke="#f97316" strokeWidth="0.8" strokeOpacity="0.5"/>
-        <line x1="18" y1="16.5" x2="22" y2="16.5" stroke="#f97316" strokeWidth="0.8" strokeOpacity="0.5"/>
-      </svg>
-      <div>
-        <div style={{ fontFamily: "'Chakra Petch'", fontSize: 11, fontWeight: 700, letterSpacing: '0.22em', color: '#e2eeff', lineHeight: 1 }}>THE PHYSICAL IDE</div>
-        <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, letterSpacing: '0.25em', color: '#2d4a6a', marginTop: 2 }}>ASSEMBLY VERIFIER</div>
-      </div>
-    </div>
+    <img
+      src="/physical-ide-logo-dark.svg"
+      alt="physical.ide"
+      style={{ height: 28, width: 'auto' }}
+    />
   );
 }
 
@@ -246,11 +238,11 @@ export default function App() {
     return (
       <div style={{ height: '100%', display: 'flex', background: '#060c16', position: 'relative', overflow: 'hidden' }}>
         {/* Left orange bar */}
-        <div style={{ width: 3, background: 'linear-gradient(180deg, transparent, #f97316 30%, #f97316 70%, transparent)', flexShrink: 0 }} />
+        <div style={{ width: 3, background: 'linear-gradient(180deg, transparent, #FF5722 30%, #FF5722 70%, transparent)', flexShrink: 0 }} />
 
         {/* Left info column */}
         <div style={{ width: 320, flexShrink: 0, padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid #0f1f30' }}>
-          <Logo />
+          <img src="/physical-ide-logo-dark.svg" alt="physical.ide" style={{ height: 36, width: 'auto', objectFit: 'contain', objectPosition: 'left' }} />
           <div style={{ marginTop: 48 }}>
             <div style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#1e3248', letterSpacing: '0.2em', marginBottom: 16 }}>01 / SYSTEM</div>
             <div style={{ fontFamily: "'Chakra Petch'", fontSize: 22, fontWeight: 700, color: '#e2eeff', lineHeight: 1.3, letterSpacing: '0.04em' }}>
@@ -267,16 +259,7 @@ export default function App() {
 
         {/* Right: large boot area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40, padding: 60 }}>
-          {/* Big logo mark */}
-          <svg width="120" height="120" viewBox="0 0 22 22" fill="none" className="boot-in">
-            <rect x="0.6" y="0.6" width="20.8" height="20.8" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.25"/>
-            <rect x="6" y="6" width="10" height="10" transform="rotate(45 11 11)" fill="none" stroke="#f97316" strokeWidth="0.8"/>
-            <circle cx="11" cy="11" r="2" fill="#f97316" className="logo-dot"/>
-            <line x1="0" y1="5.5" x2="4" y2="5.5" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.5"/>
-            <line x1="18" y1="16.5" x2="22" y2="16.5" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.5"/>
-            <line x1="5.5" y1="0" x2="5.5" y2="4" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.5"/>
-            <line x1="16.5" y1="18" x2="16.5" y2="22" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.5"/>
-          </svg>
+          <img src="/physical-ide-stacked.svg" alt="physical.ide" className="boot-in" style={{ height: 140, width: 'auto' }} />
 
           <div className="boot-in-2" style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#1e3248', letterSpacing: '0.25em', marginBottom: 12 }}>GOOGLE I/O 2026</div>
@@ -294,7 +277,7 @@ export default function App() {
               fontWeight: 700,
               letterSpacing: '0.35em',
               padding: '16px 52px',
-              background: '#f97316',
+              background: '#FF5722',
               color: '#060c16',
               border: 'none',
               cursor: 'pointer',
@@ -305,7 +288,7 @@ export default function App() {
         </div>
 
         {/* Bottom bar */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #f97316, transparent 60%)' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, #FF5722, transparent 60%)' }} />
       </div>
     );
   }
@@ -327,7 +310,7 @@ export default function App() {
       {/* ── Header ── */}
       <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #0f1f30', gap: 20 }}>
         {/* Orange left tick */}
-        <div style={{ width: 3, height: 20, background: '#f97316', flexShrink: 0 }} />
+        <div style={{ width: 3, height: 20, background: '#FF5722', flexShrink: 0 }} />
         <Logo />
 
         {/* Divider */}
@@ -361,9 +344,9 @@ export default function App() {
               fontWeight: 600,
               letterSpacing: '0.25em',
               padding: '5px 14px',
-              background: chatOpen ? '#f97316' : 'transparent',
-              color: chatOpen ? '#060c16' : '#f97316',
-              border: '1px solid rgba(249,115,22,0.4)',
+              background: chatOpen ? '#FF5722' : 'transparent',
+              color: chatOpen ? '#060c16' : '#FF5722',
+              border: '1px solid rgba(255,87,34,0.4)',
               cursor: 'pointer',
             }}
           >
@@ -379,7 +362,7 @@ export default function App() {
         <div style={{ width: videoWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #0f1f30' }}>
           {/* Panel label bar */}
           <div style={{ height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid #0f1f30', background: '#07101a' }}>
-            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#f97316', letterSpacing: '0.15em', opacity: 0.6 }}>01</span>
+            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#FF5722', letterSpacing: '0.15em', opacity: 0.6 }}>01</span>
             <span style={{ fontFamily: "'Chakra Petch'", fontSize: 8, fontWeight: 500, letterSpacing: '0.3em', color: '#1e3248' }}>LIVE FEED</span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span className={handsInFrame ? 'pulse-dot' : ''} style={{ display: 'block', width: 4, height: 4, borderRadius: '50%', background: handsInFrame ? '#f59e0b' : '#10e8a0' }} />
@@ -403,7 +386,7 @@ export default function App() {
           {/* Voice circle */}
           <div style={{ flexShrink: 0, borderTop: '1px solid #0f1f30', background: '#07101a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '4px 14px', height: 72 }}>
             <VoiceCircle isSpeaking={socket.isSpeaking} analyserRef={socket.analyserRef} />
-            <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, color: socket.isSpeaking ? '#f97316' : '#1e3248', letterSpacing: '0.15em', transition: 'color 0.4s' }}>
+            <div style={{ fontFamily: "'DM Mono'", fontSize: 7.5, color: socket.isSpeaking ? '#FF5722' : '#1e3248', letterSpacing: '0.15em', transition: 'color 0.4s' }}>
               {socket.isSpeaking ? 'AGENT SPEAKING' : 'STANDBY'}
             </div>
           </div>
@@ -420,9 +403,9 @@ export default function App() {
                 letterSpacing: '0.3em',
                 padding: '10px 0',
                 width: '100%',
-                background: socket.scanning ? 'transparent' : '#f97316',
-                color: socket.scanning ? '#f97316' : '#060c16',
-                border: socket.scanning ? '1px solid rgba(249,115,22,0.3)' : 'none',
+                background: socket.scanning ? 'transparent' : '#FF5722',
+                color: socket.scanning ? '#FF5722' : '#060c16',
+                border: socket.scanning ? '1px solid rgba(255,87,34,0.3)' : 'none',
                 cursor: socket.connected && !socket.scanning ? 'pointer' : 'not-allowed',
                 opacity: !socket.connected ? 0.3 : 1,
               }}
@@ -442,7 +425,7 @@ export default function App() {
         >
           <div
             style={{ position: 'absolute', inset: 0, transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.2)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,87,34,0.2)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           />
         </div>
@@ -450,7 +433,7 @@ export default function App() {
         {/* 02 INSTRUCTION */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid #0f1f30' }}>
           <div style={{ height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid #0f1f30', background: '#07101a' }}>
-            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#f97316', letterSpacing: '0.15em', opacity: 0.6 }}>02</span>
+            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#FF5722', letterSpacing: '0.15em', opacity: 0.6 }}>02</span>
             <span style={{ fontFamily: "'Chakra Petch'", fontSize: 8, fontWeight: 500, letterSpacing: '0.3em', color: '#1e3248' }}>INSTRUCTION</span>
           </div>
           <div style={{ flex: 1, padding: '16px 20px', minHeight: 0 }}>
@@ -468,7 +451,7 @@ export default function App() {
         {/* 03 AGENT LOG */}
         <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid #0f1f30', background: '#07101a' }}>
-            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#f97316', letterSpacing: '0.15em', opacity: 0.6 }}>03</span>
+            <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#FF5722', letterSpacing: '0.15em', opacity: 0.6 }}>03</span>
             <span style={{ fontFamily: "'Chakra Petch'", fontSize: 8, fontWeight: 500, letterSpacing: '0.3em', color: '#1e3248' }}>AGENT LOG</span>
             <span style={{ marginLeft: 'auto', fontFamily: "'DM Mono'", fontSize: 7, color: '#1e3248' }}>{socket.log.length} EVT</span>
           </div>

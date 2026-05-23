@@ -11,7 +11,7 @@ export default function InstructionCard({ image, text, citation, step, total, st
   const accentColor = isDanger ? '#ff4455'
     : isError ? '#f59e0b'
     : complete ? '#10e8a0'
-    : '#f97316';
+    : '#FF5722';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 12 }}>

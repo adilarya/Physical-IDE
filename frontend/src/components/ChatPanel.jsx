@@ -6,7 +6,7 @@ const WIRE_DOT = {
   brown:  '#92400e',
   green:  '#22c55e',
   yellow: '#eab308',
-  orange: '#f97316',
+  orange: '#FF5722',
   none:   '#243344',
 };
 
@@ -53,7 +53,7 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
 
       <div style={panelStyle}>
         {/* Orange top accent */}
-        <div style={{ height: 1, background: 'linear-gradient(90deg, #f97316, rgba(249,115,22,0.1), transparent)', flexShrink: 0 }} />
+        <div style={{ height: 1, background: 'linear-gradient(90deg, #FF5722, rgba(255,87,34,0.1), transparent)', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #132030', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -101,8 +101,8 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
           {/* Thinking */}
           {tutorialState.thinking && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="pulse-dot" style={{ display: 'block', width: 6, height: 6, borderRadius: '50%', background: '#f97316', flexShrink: 0 }} />
-              <span style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#f97316', letterSpacing: '0.08em' }}>{tutorialState.thinking}</span>
+              <span className="pulse-dot" style={{ display: 'block', width: 6, height: 6, borderRadius: '50%', background: '#FF5722', flexShrink: 0 }} />
+              <span style={{ fontFamily: "'DM Mono'", fontSize: 9, color: '#FF5722', letterSpacing: '0.08em' }}>{tutorialState.thinking}</span>
             </div>
           )}
 
@@ -115,8 +115,8 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
 
           {/* Goal banner */}
           {tutorialState.goal && tutorialState.steps.length === 0 && !tutorialState.error && (
-            <div style={{ padding: '10px 12px', background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: 2 }}>
-              <div style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#f97316', letterSpacing: '0.2em', marginBottom: 4 }}>GOAL</div>
+            <div style={{ padding: '10px 12px', background: 'rgba(255,87,34,0.06)', border: '1px solid rgba(255,87,34,0.15)', borderRadius: 2 }}>
+              <div style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#FF5722', letterSpacing: '0.2em', marginBottom: 4 }}>GOAL</div>
               <div style={{ fontFamily: "'Chakra Petch'", fontSize: 11, color: '#c8ddf0' }}>{tutorialState.goal}</div>
             </div>
           )}
@@ -136,7 +136,7 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
               }}
             >
               {/* Orange top accent */}
-              <div style={{ height: 1, background: 'linear-gradient(90deg, #f97316, rgba(249,115,22,0.05), transparent)' }} />
+              <div style={{ height: 1, background: 'linear-gradient(90deg, #FF5722, rgba(255,87,34,0.05), transparent)' }} />
 
               {/* Image */}
               {s.image_b64 ? (
@@ -154,7 +154,7 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
               {/* Content */}
               <div style={{ padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#f97316', letterSpacing: '0.2em' }}>
+                  <span style={{ fontFamily: "'DM Mono'", fontSize: 8, color: '#FF5722', letterSpacing: '0.2em' }}>
                     {String(s.step).padStart(2, '0')} / {String(tutorialState.totalSteps).padStart(2, '0')}
                   </span>
                   {s.wire_color && s.wire_color !== 'none' && (
@@ -212,10 +212,10 @@ export default function ChatPanel({ isOpen, onClose, sendMessage, tutorialState 
                 fontWeight: 600,
                 letterSpacing: '0.2em',
                 padding: '9px 16px',
-                background: (!input.trim() || tutorialState.loading) ? 'transparent' : '#f97316',
+                background: (!input.trim() || tutorialState.loading) ? 'transparent' : '#FF5722',
                 color: (!input.trim() || tutorialState.loading) ? '#243344' : '#060c16',
                 border: '1px solid',
-                borderColor: (!input.trim() || tutorialState.loading) ? '#243344' : '#f97316',
+                borderColor: (!input.trim() || tutorialState.loading) ? '#243344' : '#FF5722',
                 borderRadius: 1,
                 cursor: (!input.trim() || tutorialState.loading) ? 'not-allowed' : 'pointer',
               }}
