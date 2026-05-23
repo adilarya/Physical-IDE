@@ -284,6 +284,13 @@ class LiveAssemblySession:
             response_modalities=["AUDIO"],
             output_audio_transcription=types.AudioTranscriptionConfig(),
             system_instruction=_SYSTEM_INSTRUCTION,
+            speech_config=types.SpeechConfig(
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                        voice_name=os.getenv("GEMINI_VOICE", "Kore")
+                    )
+                )
+            ),
         )
         image_bytes = _decode_image(image_b64)
         context = (
